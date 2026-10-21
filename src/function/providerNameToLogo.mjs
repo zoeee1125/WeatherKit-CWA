@@ -4,12 +4,10 @@ import { Console } from "@nsnanocat/util";
  * 依資料源名稱回傳對應版本的標誌；Apple、WeatherKit、空值及未知來源不補標誌。
  * Return the versioned logo for a provider; Apple, WeatherKit, empty, and unknown providers do not receive a logo.
  *
- * 中央氣象署不提供標誌：天氣 App 只信任 Apple 自家 CDN 上的圖示，
- * 外部網址（GitHub raw、GitHub Pages）都會渲染成空白方塊。
- * 省略 `providerLogo` 後，App 會改為顯示 `providerName` 文字。
- * CWA intentionally has no logo: the Weather app only renders icons hosted on Apple's own CDN,
- * and external hosts (GitHub raw, GitHub Pages) all render as blank squares. Omitting
- * `providerLogo` makes the app fall back to the `providerName` text instead.
+ * 標誌必須是「透明背景 + 單色前景」的模板圖：天氣 App 只取 alpha 通道，
+ * 再依介面深淺自動上色。若圖示背景不透明，整個方塊都會被當成圖形而渲染成白塊。
+ * The logo must be a transparent-background template image: the Weather app samples only the
+ * alpha channel and tints it automatically. An opaque background would render as a solid square.
  *
  * @param {string | null | undefined} providerName - 資料源名稱。
  * Provider name.
@@ -25,8 +23,15 @@ export default function providerNameToLogo(providerName, version = "v2") {
         Console.info("✅ providerNameToLogo");
         return;
     }
-    // 目前沒有任何資料源使用自訂標誌。
-    // No provider currently uses a custom logo.
+    let providerLogo;
+    switch (normalizedProviderName) {
+        case "CWA":
+        case "中央氣象署":
+            providerLogo = `https://zoeee1125.github.io/WeatherKit-CWA/assets/icon/${version}/CWA.png`;
+            break;
+        default:
+            break;
+    }
     Console.info("✅ providerNameToLogo");
-    return undefined;
+    return providerLogo;
 }

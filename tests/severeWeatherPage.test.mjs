@@ -257,7 +257,7 @@ test("the request scripts keep an Apple-compatible empty array when the CWA fetc
     }
 });
 
-test("response clears the inherited provider logo inside every Inject method", async () => {
+test("response finalizes provider logos inside every Inject method", async () => {
     const injectMethods = ["InjectCurrentWeather", "InjectForecastDaily", "InjectForecastHourly", "InjectWeatherAlerts"];
     for (const path of ["../src/process/Response.mjs", "../src/process/Response.dev.mjs"]) {
         const source = await readFile(new URL(path, import.meta.url), "utf8");
@@ -268,7 +268,7 @@ test("response clears the inherited provider logo inside every Inject method", a
             const start = source.indexOf(`async function ${method}`);
             const end = injectMethods[index + 1] ? source.indexOf(`async function ${injectMethods[index + 1]}`) : source.length;
             const body = source.slice(start, end);
-            // Apple 會帶自己的 providerLogo；必須明確覆寫，否則外部圖示會渲染成空白方塊。
+            // Apple 會帶自己的 providerLogo，必須明確覆寫才會生效。
             // Apple ships its own providerLogo, so it must be overwritten explicitly.
             assert.match(body, /\.metadata\.providerLogo\s*=\s*providerNameToLogo\(/, `${path}: ${method}`);
         }

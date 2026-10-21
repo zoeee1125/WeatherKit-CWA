@@ -101,6 +101,35 @@
         "desc": "使用選定的資料源替換空氣品質資料。環境部只提供臺灣測站資料，且需要填寫開放資料平台 API key。"
     },
     {
+        "id": "@iRingo.WeatherKit.Settings.AirQuality.CountryOverride",
+        "name": "[空氣品質] 國家代碼覆寫",
+        "type": "selects",
+        "val": "",
+        "items": [
+            {
+                "key": "",
+                "label": "不覆寫（保持台灣）"
+            },
+            {
+                "key": "CN",
+                "label": "中國大陸（CN）"
+            },
+            {
+                "key": "JP",
+                "label": "日本（JP）"
+            },
+            {
+                "key": "US",
+                "label": "美國（US）"
+            },
+            {
+                "key": "HK",
+                "label": "香港（HK）"
+            }
+        ],
+        "desc": "改寫送給 Apple 的國家代碼。空氣品質資料槽由 country 參數決定，而台灣不在 Apple 的支援名單內，因此不會回傳空氣品質；覆寫成支援地區可嘗試借用該地區的空氣品質路徑。"
+    },
+    {
         "id": "@iRingo.WeatherKit.Settings.API.CWA.Token",
         "name": "[API] 中央氣象署授權碼",
         "type": "text",

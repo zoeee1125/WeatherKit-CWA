@@ -11,7 +11,12 @@ import { Console, Lodash as _ } from "@nsnanocat/util";
  */
 export default function setENV(name, platforms, database) {
     Console.info("☑️ Set Environment Variables");
-    const { Settings, Caches, Configs } = getStorage(name, platforms, database);
+    // getStorage 會把 $argument 合併進 database 的設定物件，而參照共用會讓使用者設定
+    // 寫回資料庫預設值；整份深拷貝一份，避免污染預設值。
+    // getStorage merges $argument into the database settings by reference, which writes user
+    // values back into the defaults; deep-clone the whole database so it stays pristine.
+    const isolatedDatabase = JSON.parse(JSON.stringify(database ?? {}));
+    const { Settings, Caches, Configs } = getStorage(name, platforms, isolatedDatabase);
     /***************** Settings *****************/
     Console.info(`typeof Settings: ${typeof Settings}`, `Settings: ${JSON.stringify(Settings, null, 2)}`);
     string2array("DataSets");

@@ -5,7 +5,7 @@ export default {
             DataSets: ["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"],
             Weather: { Provider: "CWA" },
             WeatherAlerts: { Provider: "CWA" },
-            AirQuality: { Provider: "Environment", UseFixture: false },
+            AirQuality: { Provider: "Environment", UseFixture: false, CountryOverride: "" },
             API: { CWA: { Token: "" }, Environment: { Token: "" } },
         },
         Configs: {

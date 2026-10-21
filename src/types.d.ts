@@ -66,6 +66,23 @@ export interface Settings {
          * @defaultValue "Environment"
          */
         Provider?: 'WeatherKit' | 'Environment';
+    /**
+         * [空氣品質] 國家代碼覆寫
+         *
+         * 改寫送給 Apple 的國家代碼。空氣品質資料槽由 country 參數決定，而台灣不在 Apple 的支援名單內，因此不會回傳空氣品質；覆寫成支援地區可嘗試借用該地區的空氣品質路徑。
+         *
+         * @remarks
+         *
+         * Possible values:
+         * - `''` - 不覆寫（保持台灣）
+         * - `'CN'` - 中國大陸（CN）
+         * - `'JP'` - 日本（JP）
+         * - `'US'` - 美國（US）
+         * - `'HK'` - 香港（HK）
+         *
+         * @defaultValue ""
+         */
+        CountryOverride?: '' | 'CN' | 'JP' | 'US' | 'HK';
 };
     API?: {
     CWA?: {

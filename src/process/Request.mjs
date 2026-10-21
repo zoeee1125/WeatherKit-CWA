@@ -92,6 +92,13 @@ export async function Request($request) {
                                     break;
                                 }
                                 case url.pathname.startsWith("/api/v2/weather/"): {
+                                    // 空氣品質資料槽由 country 參數決定；台灣不在 Apple 支援名單內，
+                                    // 可改寫成其他支援地區以借用該地區的空氣品質路徑。
+                                    // The air-quality slot follows the country parameter; Taiwan is not on
+                                    // Apple's supported list, so it can be rewritten to a supported region.
+                                    if (Settings?.AirQuality?.CountryOverride) {
+                                        url.searchParams.set("country", Settings.AirQuality.CountryOverride);
+                                    }
                                     // 解決 macOS 天氣 app 如果使用國際版 Maps 時，country 遺失而不顯示未來一小時降水的問題
                                     switch (true) {
                                         case $request.headers["User-Agent"]?.startsWith("WeatherKit_Weather_macOS_Version"):

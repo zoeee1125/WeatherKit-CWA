@@ -283,28 +283,30 @@ test("CWA-only settings expose the provider, datasets, token, and Traditional Ch
     assert.match(full, /export const weather = \[weatherProvider\]/);
     assert.match(full, /export const weatherAlerts = \[weatherAlertsProvider\]/);
     assert.match(release, /import \{[^}]*airQuality[^}]*dataSets[^}]*weather[^}]*weatherAlerts[^}]*\} from "\.\/arguments-builder\.full\.config"/);
-    assert.match(release, /args: \[\.\.\.dataSets, \.\.\.weather, \.\.\.weatherAlerts, \.\.\.airQuality, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
+    assert.match(release, /args: \[\.\.\.dataSets, \.\.\.weather, \.\.\.weatherAlerts, \.\.\.nextHour, \.\.\.airQuality, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
     assert.match(dev, /import \{[^}]*airQuality[^}]*dataSetsFull[^}]*weatherFull[^}]*\} from "\.\/arguments-builder\.full\.config"/);
-    assert.match(dev, /args: \[\.\.\.dataSetsFull, \.\.\.weatherFull, \.\.\.weatherAlerts, \.\.\.airQuality, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
+    assert.match(dev, /args: \[\.\.\.dataSetsFull, \.\.\.weatherFull, \.\.\.weatherAlerts, \.\.\.nextHour, \.\.\.airQuality, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
 
     // 發布版資料集只包含中央氣象署實際提供的四項。
     // The release dataset list only contains what CWA actually provides.
     const releaseDataSets = full.slice(full.indexOf("export const dataSets:"), full.indexOf("export const dataSetsFull:"));
     assert.match(releaseDataSets, /name: "\[資料集\]"/);
-    assert.match(releaseDataSets, /defaultValue: \["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"\]/);
+    assert.match(releaseDataSets, /defaultValue: \["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "forecastNextHour", "weatherAlerts"\]/);
     for (const [key, label] of [
         ["airQuality", "空氣品質"],
         ["currentWeather", "目前天氣"],
         ["forecastDaily", "每日預報"],
         ["forecastHourly", "逐時預報"],
+        ["forecastNextHour", "未來一小時降水"],
         ["weatherAlerts", "天氣警特報"],
     ]) {
         assert.match(releaseDataSets, new RegExp(`key: "${key}", label: "${label}"`));
     }
-    assert.doesNotMatch(releaseDataSets, /forecastNextHour|news|locationInfo|trendComparison|weatherChange/);
+    assert.doesNotMatch(releaseDataSets, /news|locationInfo|trendComparison|weatherChange/);
 
     assert.match(database, /Weather: \{ Provider: "CWA" \}/);
     assert.match(database, /WeatherAlerts: \{ Provider: "CWA" \}/);
+    assert.match(database, /NextHour: \{ Provider: "CWA" \}/);
     assert.match(database, /API: \{ CWA: \{ Token: "" \}, Environment: \{ Token: "" \} \}/);
     assert.match(types, /Provider\?: 'WeatherKit' \| 'CWA'/);
     assert.match(boxjs, /@iRingo\.WeatherKit\.Settings\.WeatherAlerts\.Provider[\s\S]*"val":\s*"CWA"[\s\S]*"key":\s*"WeatherKit"/);
@@ -346,5 +348,46 @@ test("production templates hook the air-quality scale so the local TW.AQI defini
     for (const filename of ["iRingo.WeatherKit.sgmodule", "iRingo.WeatherKit.lpx", "iRingo.WeatherKit.stoverride"]) {
         const content = await readFile(new URL(`../dist/${filename}`, import.meta.url), "utf8");
         assert.ok(content.includes("api.v1.airQualityScale.request"), `${filename} 缺少空氣品質標準 request hook`);
+    }
+});
+
+test("production templates schedule the rain alert on all platforms", async () => {
+    // 降雨通知由排程腳本執行；沒有排程條目就永遠不會發通知。
+    // The rain alert runs from a scheduled script; without a schedule entry it never fires.
+    const surge = await readFile(new URL("../template/surge.handlebars", import.meta.url), "utf8");
+    assert.ok(surge.includes("WeatherKit.rainAlert.cron"), "Surge 缺少排程腳本");
+    assert.match(surge, /type=cron, cronexp="0 \*\/30 \* \* \*"/, "Surge 排程表達式");
+    assert.ok(surge.includes("wake-system=1"), "Surge 需要 wake-system 才不會漏觸發");
+    assert.ok(surge.includes("notify.bundle.js"), "Surge 排程腳本路徑");
+
+    const loon = await readFile(new URL("../template/loon.handlebars", import.meta.url), "utf8");
+    assert.match(loon, /^cron "0 \*\/30 \* \* \*" script-path=.*notify\.bundle\.js.*enable=true/m, "Loon 排程腳本");
+
+    const quantumultX = await readFile(new URL("../template/quantumultx.handlebars", import.meta.url), "utf8");
+    assert.ok(quantumultX.includes("[task_local]"), "Quantumult X 缺少 task_local 區段");
+    assert.match(quantumultX, /^0 \*\/30 \* \* \* .*notify\.bundle\.js.*enabled=true/m, "Quantumult X 排程腳本");
+
+    const stash = await readFile(new URL("../template/stash.handlebars", import.meta.url), "utf8");
+    assert.match(stash, /^cron:\n  script:\n    - name: WeatherKit\.rainAlert\.cron\n      cron: '0 \*\/30 \* \* \*'/m, "Stash 排程腳本");
+    assert.match(stash, /WeatherKit\.rainAlert\.cron:\n    url: [^\n]+notify\.bundle\.js/, "Stash 缺少 notify 的 script provider");
+
+    // 產生出的模組也要帶到排程條目。
+    for (const filename of ["iRingo.WeatherKit.sgmodule", "iRingo.WeatherKit.lpx", "iRingo.WeatherKit.snippet", "iRingo.WeatherKit.stoverride"]) {
+        const content = await readFile(new URL(`../dist/${filename}`, import.meta.url), "utf8");
+        assert.ok(content.includes("rainAlert"), `${filename} 缺少降雨通知排程`);
+    }
+});
+
+test("production templates refresh remote scripts hourly", async () => {
+    // Surge 與 Stash 的外置資源預設 24 小時才檢查一次，使用者要等一天才拿到新腳本。
+    // Surge and Stash check remote resources once a day by default, so users wait a full day
+    // for a new script.
+    const surge = await readFile(new URL("../template/surge.handlebars", import.meta.url), "utf8");
+    for (const line of surge.split("\n").filter(l => l.includes("script-path="))) {
+        assert.ok(line.includes("script-update-interval=3600"), line.slice(0, 80));
+    }
+    const stash = await readFile(new URL("../template/stash.handlebars", import.meta.url), "utf8");
+    for (const line of stash.split("\n").filter(l => l.trim().startsWith("interval:"))) {
+        assert.equal(line.trim(), "interval: 3600");
     }
 });

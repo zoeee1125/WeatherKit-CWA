@@ -2,6 +2,7 @@ import { Console } from "@nsnanocat/util";
 import * as flatbuffers from "flatbuffers";
 import AirQuality from "../class/AirQuality.mjs";
 import CWA from "../class/CWA.mjs";
+import ForecastNextHour from "../class/ForecastNextHour.mjs";
 import Weather from "../class/Weather.mjs";
 import WeatherAlerts from "../class/WeatherAlerts.mjs";
 import WeatherKit2 from "../class/WeatherKit2.mjs";
@@ -95,6 +96,7 @@ export async function Response($request, $response) {
                                 const enviroments = {
                                     airQuality: new AirQuality(providerParameters, Settings?.API?.Environment?.Token, { useFixture: Settings?.AirQuality?.UseFixture === true }),
                                     cwa: new CWA(providerParameters, Settings?.API?.CWA?.Token),
+                                    forecastNextHour: new ForecastNextHour(providerParameters, Settings?.API?.CWA?.Token),
                                     country: parameters.country,
                                 };
 
@@ -121,6 +123,11 @@ export async function Response($request, $response) {
                                                 if (injectedForecastHourly !== undefined) body.forecastHourly = injectedForecastHourly;
                                                 break;
                                             }
+                                            case "forecastNextHour": {
+                                                const injectedForecastNextHour = await InjectForecastNextHour(body.forecastNextHour, Settings, enviroments);
+                                                if (injectedForecastNextHour !== undefined) body.forecastNextHour = injectedForecastNextHour;
+                                                break;
+                                            }
                                             case "weatherAlerts": {
                                                 const injectedAlerts = await InjectWeatherAlerts(body.weatherAlerts, Settings, enviroments);
                                                 // 沒有原始 slot 時不要建立 key，否則編碼器會收到非物件而失敗。
@@ -129,8 +136,8 @@ export async function Response($request, $response) {
                                                 break;
                                             }
                                             default:
-                                                // 中央氣象署沒有分鐘級降水資料集，保留 Apple 原值。
-                                                // CWA has no minute-level precipitation dataset, so keep Apple's value.
+                                                // 其餘資料槽一律保留 Apple 原值。
+                                                // Every other slot keeps Apple's value.
                                                 break;
                                         }
                                     }),
@@ -274,6 +281,38 @@ async function InjectForecastHourly(forecastHourly, Settings, enviroments) {
     }
     Console.info("✅ InjectForecastHourly");
     return forecastHourly;
+}
+
+/**
+ * 注入未來一小時降水預報資料
+ * @param {any} forecastNextHour - 未來一小時預報資料物件
+ * @param {import('../types').Settings} Settings - 設定物件
+ * @param {any} enviroments - 環境變數
+ * @returns {Promise<any>} 注入後的未來一小時預報資料
+ */
+async function InjectForecastNextHour(forecastNextHour, Settings, enviroments) {
+    Console.info("☑️ InjectForecastNextHour");
+    // Apple 對台灣不會回傳 forecastNextHour 區塊，此時直接建立新的資料槽。
+    // Apple omits the forecastNextHour slot for Taiwan, so a new slot is created instead.
+    if (forecastNextHour) {
+        Console.info("✅ InjectForecastNextHour");
+        return forecastNextHour;
+    }
+    let newForecastNextHour;
+    switch (Settings?.NextHour?.Provider) {
+        case "WeatherKit":
+            break;
+        case "CWA":
+        default: {
+            newForecastNextHour = await enviroments.forecastNextHour.NextHour();
+            break;
+        }
+    }
+    if (newForecastNextHour?.metadata) {
+        newForecastNextHour.metadata.providerLogo = providerNameToLogo(newForecastNextHour.metadata.providerName);
+    }
+    Console.info("✅ InjectForecastNextHour");
+    return newForecastNextHour;
 }
 
 /**

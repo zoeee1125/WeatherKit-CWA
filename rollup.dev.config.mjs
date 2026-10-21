@@ -20,4 +20,13 @@ export default [
         },
         plugins: [nodeResolve()],
     },
+    {
+        input: "./src/notify.js",
+        output: {
+            file: "./dist/notify.dev.bundle.js",
+            format: "es",
+            banner: chunk => `console.log('Date: ${new Date().toLocaleString("zh-CN", { timeZone: "PRC" })}');\nconsole.log('Version: ${pkg.version ?? "dev"}');\nconsole.log('${chunk.fileName}');\nconsole.log('${pkg.displayName} β');\n/* ${pkg.homepage} */`,
+        },
+        plugins: [nodeResolve()],
+    },
 ];

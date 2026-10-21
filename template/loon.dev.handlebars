@@ -25,6 +25,7 @@ http-request ^https?:\/\/weatherkit\.apple\.com\/api\/v1\/weatherAlerts\?[^#]*&i
 http-request ^https?:\/\/weatherkit\.apple\.com\/api\/v2\/weather\/ script-path=https://gist.githubusercontent.com/VirgilClyne/862db28df04be7523476d10b61b128f2/raw/request.dev.bundle.js, tag=🌤 WeatherKit.api.v2.weather.request, argument={{{scriptParams}}}
 http-response ^https?:\/\/weatherkit\.apple\.com\/api\/v2\/weather\/ requires-body=1, binary-body-mode=1, script-path=https://gist.githubusercontent.com/VirgilClyne/862db28df04be7523476d10b61b128f2/raw/response.dev.bundle.js, tag=🌤 WeatherKit.api.v2.weather.response, argument={{{scriptParams}}}
 http-request ^https?:\/\/weather-map2\.apple\.com\/v1\/mapOverlay\/ script-path=https://gist.githubusercontent.com/VirgilClyne/862db28df04be7523476d10b61b128f2/raw/request.dev.bundle.js, tag=🌤 WeatherKit.api.v1.mapOverlay.request, argument={{{scriptParams}}}
+cron "0 */30 * * *" script-path=https://gist.githubusercontent.com/VirgilClyne/862db28df04be7523476d10b61b128f2/raw/notify.dev.bundle.js, tag=🌤 WeatherKit.rainAlert.cron, timeout=30, enable=true, argument={{{scriptParams}}}
 
 [URL Rewrite]
 

@@ -84,6 +84,23 @@
         "desc": "使用選定的資料源處理天氣警特報資料。中央氣象署使用開放資料平台的警特報與颱風警報資料集。"
     },
     {
+        "id": "@iRingo.WeatherKit.Settings.NextHour.Provider",
+        "name": "[未來一小時降水] 資料源",
+        "type": "selects",
+        "val": "CWA",
+        "items": [
+            {
+                "key": "WeatherKit",
+                "label": "WeatherKit（不修改）"
+            },
+            {
+                "key": "CWA",
+                "label": "中央氣象署（臺灣）"
+            }
+        ],
+        "desc": "使用選定的資料源補上未來一小時降水預報。Apple 只對部分地區提供這份資料，中央氣象署則以 QPESUMS 雷達定量降雨預報格點資料提供臺灣資料。"
+    },
+    {
         "id": "@iRingo.WeatherKit.Settings.AirQuality.Provider",
         "name": "[空氣品質] 資料源",
         "type": "selects",

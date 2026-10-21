@@ -53,7 +53,7 @@ export const dataSets: Arg[] = [
     {
         key: "DataSets",
         name: "[資料集]",
-        defaultValue: ["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"],
+        defaultValue: ["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "forecastNextHour", "weatherAlerts"],
         type: "array",
         description: "選擇需要解析並處理的資料集；未選擇的資料槽始終保持原樣透傳，不作修改。",
         options: [
@@ -61,6 +61,7 @@ export const dataSets: Arg[] = [
             { key: "currentWeather", label: "目前天氣" },
             { key: "forecastDaily", label: "每日預報" },
             { key: "forecastHourly", label: "逐時預報" },
+            { key: "forecastNextHour", label: "未來一小時降水" },
             { key: "weatherAlerts", label: "天氣警特報" },
         ],
     },
@@ -114,6 +115,20 @@ const weatherAlertsProvider: Arg = {
 };
 
 export const weatherAlerts = [weatherAlertsProvider];
+
+const nextHourProvider: Arg = {
+    key: "NextHour.Provider",
+    name: "[未來一小時降水] 資料源",
+    defaultValue: "CWA",
+    type: "string",
+    options: [
+        { key: "WeatherKit", label: "WeatherKit（不修改）" },
+        { key: "CWA", label: "中央氣象署（臺灣）" },
+    ],
+    description: "使用選定的資料源補上未來一小時降水預報。Apple 只對部分地區提供這份資料，中央氣象署則以 QPESUMS 雷達定量降雨預報格點資料提供臺灣資料。",
+};
+
+export const nextHour = [nextHourProvider];
 
 const airQualityProvider: Arg = {
     key: "AirQuality.Provider",
@@ -199,5 +214,5 @@ export const logLevel: Arg[] = [
 
 export default defineConfig({
     output,
-    args: [...dataSetsFull, ...weatherFull, ...weatherAlerts, ...airQuality, ...api, ...storage, ...logLevel],
+    args: [...dataSetsFull, ...weatherFull, ...weatherAlerts, ...nextHour, ...airQuality, ...api, ...storage, ...logLevel],
 });

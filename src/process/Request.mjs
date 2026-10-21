@@ -101,6 +101,10 @@ export async function Request($request) {
                                         url.searchParams.set("country", Settings.AirQuality.CountryOverride);
                                         Console.info("✅ AirQuality.CountryOverride", url.searchParams.get("country"));
                                     }
+                                    // 記下這次查詢的位置，排程腳本要靠它判斷即將降雨的位置。
+                                    // Remember the queried location; the scheduled script needs it to know
+                                    // where rain is coming.
+                                    RememberLocation(parameters);
                                     // 解決 macOS 天氣 app 如果使用國際版 Maps 時，country 遺失而不顯示未來一小時降水的問題
                                     switch (true) {
                                         case $request.headers["User-Agent"]?.startsWith("WeatherKit_Weather_macOS_Version"):
@@ -127,6 +131,23 @@ export async function Request($request) {
     $request.url = url.toString();
     Console.debug(`$request.url: ${$request.url}`);
     return { $request, $response };
+}
+
+/**
+ * 記住目前查詢的位置，讓排程腳本能知道要在哪裡判斷即將降雨。
+ * Remember the queried location so the scheduled script knows where to look for incoming rain.
+ * @param {ReturnType<typeof import("../function/parseWeatherKitURL.mjs").default>} parameters WeatherKit 請求參數 / WeatherKit request parameters.
+ * @returns {void}
+ */
+function RememberLocation(parameters) {
+    const latitude = Number(parameters?.latitude);
+    const longitude = Number(parameters?.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+    const caches = Storage.getItem("@iRingo.WeatherKit.Caches", {}) ?? {};
+    Storage.setItem("@iRingo.WeatherKit.Caches", {
+        ...caches,
+        location: { latitude, longitude, name: "", updatedAt: Date.now() },
+    });
 }
 
 /**

@@ -25,6 +25,7 @@ http-request ^https?:\/\/weatherkit\.apple\.com\/api\/v1\/airQualityScale\/ scri
 http-request ^https?:\/\/weatherkit\.apple\.com\/api\/v1\/weatherAlerts\?[^#]*&ids=-?[0-9]+(?:\.[0-9]+)?,-?[0-9]+(?:\.[0-9]+)?(?:&|$) script-path=https://github.com/zoeee1125/WeatherKit-CWA/releases/latest/download/request.bundle.js, tag=🌤 WeatherKit.api.v1.weatherAlerts.api.request, argument={{{scriptParams}}}
 http-request ^https?:\/\/weatherkit\.apple\.com\/api\/v2\/weather\/ script-path=https://github.com/zoeee1125/WeatherKit-CWA/releases/latest/download/request.bundle.js, tag=🌤 WeatherKit.api.v2.weather.request, argument={{{scriptParams}}}
 http-response ^https?:\/\/weatherkit\.apple\.com\/api\/v2\/weather\/ requires-body=1, binary-body-mode=1, script-path=https://github.com/zoeee1125/WeatherKit-CWA/releases/latest/download/response.bundle.js, tag=🌤 WeatherKit.api.v2.weather.response, argument={{{scriptParams}}}
+cron "0 */30 * * *" script-path=https://github.com/zoeee1125/WeatherKit-CWA/releases/latest/download/notify.bundle.js, tag=🌤 WeatherKit.rainAlert.cron, timeout=30, enable=true, argument={{{scriptParams}}}
 
 [MITM]
 hostname = weatherkit.apple.com

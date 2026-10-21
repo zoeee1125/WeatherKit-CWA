@@ -58,7 +58,7 @@ test("request preserves WeatherKit dataSets independently of the response proces
 });
 
 test("default processed datasets match the release configuration", () => {
-    assert.deepEqual(database.WeatherKit.Settings.DataSets, ["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"]);
+    assert.deepEqual(database.WeatherKit.Settings.DataSets, ["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "forecastNextHour", "weatherAlerts"]);
 });
 
 test("request dataSet names map to FlatBuffer root slots", () => {

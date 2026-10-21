@@ -92,6 +92,10 @@ export async function Request($request) {
                                     break;
                                 }
                                 case url.pathname.startsWith("/api/v2/weather/"): {
+                                    // 記下這次查詢的位置，排程腳本要靠它判斷即將降雨的位置。
+                                    // Remember the queried location; the scheduled script needs it to know
+                                    // where rain is coming.
+                                    RememberLocation(parameters);
                                     // 空氣品質資料槽由 country 參數決定；台灣不在 Apple 支援名單內，
                                     // 可改寫成其他支援地區以借用該地區的空氣品質路徑。
                                     // The air-quality slot follows the country parameter; Taiwan is not on
@@ -127,6 +131,23 @@ export async function Request($request) {
     $request.url = url.toString();
     Console.debug(`$request.url: ${$request.url}`);
     return { $request, $response };
+}
+
+/**
+ * 記住目前查詢的位置，讓排程腳本能知道要在哪裡判斷即將降雨。
+ * Remember the queried location so the scheduled script knows where to look for incoming rain.
+ * @param {ReturnType<typeof import("../function/parseWeatherKitURL.mjs").default>} parameters WeatherKit 請求參數 / WeatherKit request parameters.
+ * @returns {void}
+ */
+function RememberLocation(parameters) {
+    const latitude = Number(parameters?.latitude);
+    const longitude = Number(parameters?.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+    const caches = Storage.getItem("@iRingo.WeatherKit.Caches", {}) ?? {};
+    Storage.setItem("@iRingo.WeatherKit.Caches", {
+        ...caches,
+        location: { latitude, longitude, name: "", updatedAt: Date.now() },
+    });
 }
 
 /**

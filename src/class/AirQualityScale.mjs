@@ -40,9 +40,9 @@ export default class AirQualityScale {
             "TW.AQI": {
                 "zh-Hant-TW": {
                     name: "TW.AQI",
-                    displayName: "AQI (TW)",
+                    displayName: "AQI",
                     shortDisplayName: "AQI",
-                    longDisplayName: "臺灣空氣品質指標",
+                    longDisplayName: "空氣品質指標",
                     displayLabel: "空氣品質",
                     language: "zh-Hant-TW",
                     version: 1,
@@ -72,9 +72,9 @@ export default class AirQualityScale {
                 },
                 "en-US": {
                     name: "TW.AQI",
-                    displayName: "AQI (TW)",
+                    displayName: "AQI",
                     shortDisplayName: "AQI",
-                    longDisplayName: "Taiwan Air Quality Index",
+                    longDisplayName: "Air Quality Index",
                     displayLabel: "Air Quality",
                     language: "en-US",
                     version: 1,

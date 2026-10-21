@@ -1,5 +1,6 @@
 import { Console } from "@nsnanocat/util";
 import * as flatbuffers from "flatbuffers";
+import AirQuality from "../class/AirQuality.mjs";
 import CWA from "../class/CWA.mjs";
 import Weather from "../class/Weather.mjs";
 import WeatherAlerts from "../class/WeatherAlerts.mjs";
@@ -92,6 +93,7 @@ export async function Response($request, $response) {
                                 body = WeatherKit2.decode(ByteBuffer, rootNames);
                                 const providerParameters = { ...parameters, weatherKitLanguage: body.weatherAlerts?.metadata?.language };
                                 const enviroments = {
+                                    airQuality: new AirQuality(providerParameters, Settings?.API?.Environment?.Token, { useFixture: Settings?.AirQuality?.UseFixture === true }),
                                     cwa: new CWA(providerParameters, Settings?.API?.CWA?.Token),
                                     country: parameters.country,
                                 };
@@ -99,6 +101,10 @@ export async function Response($request, $response) {
                                 await Promise.all(
                                     dataSets.map(async dataSet => {
                                         switch (dataSet) {
+                                            case "airQuality": {
+                                                body.airQuality = await InjectAirQuality(body.airQuality, Settings, enviroments);
+                                                break;
+                                            }
                                             case "currentWeather": {
                                                 body.currentWeather = await InjectCurrentWeather(body.currentWeather, Settings, enviroments);
                                                 break;
@@ -116,8 +122,8 @@ export async function Response($request, $response) {
                                                 break;
                                             }
                                             default:
-                                                // 中央氣象署沒有空氣品質與分鐘級降水資料集，保留 Apple 原值。
-                                                // CWA provides neither air quality nor minute-level precipitation, so keep Apple's values.
+                                                // 中央氣象署沒有分鐘級降水資料集，保留 Apple 原值。
+                                                // CWA has no minute-level precipitation dataset, so keep Apple's value.
                                                 break;
                                         }
                                     }),
@@ -296,4 +302,34 @@ async function InjectWeatherAlerts(weatherAlerts, Settings, enviroments) {
     }
     Console.info("✅ InjectWeatherAlerts");
     return weatherAlerts;
+}
+
+/**
+ * 注入空氣品質資料
+ * @param {any} airQuality - WeatherKit 原始空氣品質物件
+ * @param {import('../types').Settings} Settings - 設定物件
+ * @param {any} enviroments - 環境變數
+ * @returns {Promise<any>} 注入後的空氣品質物件
+ */
+async function InjectAirQuality(airQuality, Settings, enviroments) {
+    Console.info("☑️ InjectAirQuality");
+    switch (Settings?.AirQuality?.Provider) {
+        case "WeatherKit":
+        default:
+            Console.info("✅ InjectAirQuality", "Kept Apple data");
+            return airQuality;
+        case "Environment": {
+            const injected = await enviroments.airQuality.Current();
+            if (!injected?.metadata || injected.metadata.temporarilyUnavailable) {
+                Console.info("✅ InjectAirQuality", "No replacement");
+                return airQuality;
+            }
+            Console.info("✅ InjectAirQuality", injected.metadata.providerName);
+            return {
+                ...airQuality,
+                ...injected,
+                metadata: { ...(airQuality?.metadata ?? {}), ...injected.metadata },
+            };
+        }
+    }
 }

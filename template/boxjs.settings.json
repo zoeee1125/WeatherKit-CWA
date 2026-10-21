@@ -1,1 +1,152 @@
-[{"id":"@iRingo.WeatherKit.Settings.DataSets","name":"[資料集]","type":"checkboxes","val":["currentWeather","forecastDaily","forecastHourly","news","weatherAlerts","weatherChange","trendComparison","locationInfo"],"items":[{"key":"currentWeather","label":"目前天氣"},{"key":"forecastDaily","label":"每日預報"},{"key":"forecastHourly","label":"逐時預報"},{"key":"news","label":"新聞"},{"key":"weatherAlerts","label":"天氣警特報"},{"key":"weatherChange","label":"天氣變化"},{"key":"trendComparison","label":"歷史對比"},{"key":"locationInfo","label":"位置資訊"}],"desc":"選擇需要解析並處理的資料集；未選擇的資料槽始終保持原樣透傳，不作修改。"},{"id":"@iRingo.WeatherKit.Settings.Weather.Provider","name":"[天氣] 資料源","type":"selects","val":"CWA","items":[{"key":"WeatherKit","label":"WeatherKit（不替換）"},{"key":"CWA","label":"中央氣象署（臺灣）"}],"desc":"使用選定的資料源替換天氣資料。中央氣象署只提供臺灣地區資料，且需要填寫開放資料平台授權碼。"},{"id":"@iRingo.WeatherKit.Settings.WeatherAlerts.Provider","name":"[天氣警特報] 資料源","type":"selects","val":"CWA","items":[{"key":"WeatherKit","label":"WeatherKit（不修改）"},{"key":"CWA","label":"中央氣象署（臺灣）"}],"desc":"使用選定的資料源處理天氣警特報資料。中央氣象署使用開放資料平台的警特報與颱風警報資料集。"},{"id":"@iRingo.WeatherKit.Settings.API.CWA.Token","name":"[API] 中央氣象署授權碼","type":"text","val":"","desc":"中央氣象署開放資料平台會員授權碼，於 https://opendata.cwa.gov.tw/ 取得。使用中央氣象署資料源時必須填寫。","placeholder":"CWA-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"},{"id":"@iRingo.WeatherKit.Settings.LogLevel","name":"[除錯] 日誌等級","type":"selects","val":"WARN","items":[{"key":"OFF","label":"關閉"},{"key":"ERROR","label":"❌ 錯誤"},{"key":"WARN","label":"⚠️ 警告"},{"key":"INFO","label":"ℹ️ 資訊"},{"key":"DEBUG","label":"🅱️ 除錯"},{"key":"ALL","label":"全部"}],"desc":"選擇腳本日誌的輸出等級，低於所選等級的日誌將全部輸出。"}]
+[
+    {
+        "id": "@iRingo.WeatherKit.Settings.DataSets",
+        "name": "[資料集]",
+        "type": "checkboxes",
+        "val": [
+            "currentWeather",
+            "forecastDaily",
+            "forecastHourly",
+            "news",
+            "weatherAlerts",
+            "weatherChange",
+            "trendComparison",
+            "locationInfo"
+        ],
+        "items": [
+            {
+                "key": "currentWeather",
+                "label": "目前天氣"
+            },
+            {
+                "key": "forecastDaily",
+                "label": "每日預報"
+            },
+            {
+                "key": "forecastHourly",
+                "label": "逐時預報"
+            },
+            {
+                "key": "news",
+                "label": "新聞"
+            },
+            {
+                "key": "weatherAlerts",
+                "label": "天氣警特報"
+            },
+            {
+                "key": "weatherChange",
+                "label": "天氣變化"
+            },
+            {
+                "key": "trendComparison",
+                "label": "歷史對比"
+            },
+            {
+                "key": "locationInfo",
+                "label": "位置資訊"
+            }
+        ],
+        "desc": "選擇需要解析並處理的資料集；未選擇的資料槽始終保持原樣透傳，不作修改。"
+    },
+    {
+        "id": "@iRingo.WeatherKit.Settings.Weather.Provider",
+        "name": "[天氣] 資料源",
+        "type": "selects",
+        "val": "CWA",
+        "items": [
+            {
+                "key": "WeatherKit",
+                "label": "WeatherKit（不替換）"
+            },
+            {
+                "key": "CWA",
+                "label": "中央氣象署（臺灣）"
+            }
+        ],
+        "desc": "使用選定的資料源替換天氣資料。中央氣象署只提供臺灣地區資料，且需要填寫開放資料平台授權碼。"
+    },
+    {
+        "id": "@iRingo.WeatherKit.Settings.WeatherAlerts.Provider",
+        "name": "[天氣警特報] 資料源",
+        "type": "selects",
+        "val": "CWA",
+        "items": [
+            {
+                "key": "WeatherKit",
+                "label": "WeatherKit（不修改）"
+            },
+            {
+                "key": "CWA",
+                "label": "中央氣象署（臺灣）"
+            }
+        ],
+        "desc": "使用選定的資料源處理天氣警特報資料。中央氣象署使用開放資料平台的警特報與颱風警報資料集。"
+    },
+    {
+        "id": "@iRingo.WeatherKit.Settings.AirQuality.Provider",
+        "name": "[空氣品質] 資料源",
+        "type": "selects",
+        "val": "Environment",
+        "items": [
+            {
+                "key": "WeatherKit",
+                "label": "WeatherKit（不替換）"
+            },
+            {
+                "key": "Environment",
+                "label": "環境部（臺灣）"
+            }
+        ],
+        "desc": "使用選定的資料源替換空氣品質資料。環境部只提供臺灣測站資料，且需要填寫開放資料平台 API key。"
+    },
+    {
+        "id": "@iRingo.WeatherKit.Settings.API.CWA.Token",
+        "name": "[API] 中央氣象署授權碼",
+        "type": "text",
+        "val": "",
+        "desc": "中央氣象署開放資料平台會員授權碼，於 https://opendata.cwa.gov.tw/ 取得。使用中央氣象署資料源時必須填寫。",
+        "placeholder": "CWA-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+    },
+    {
+        "id": "@iRingo.WeatherKit.Settings.API.Environment.Token",
+        "name": "[API] 環境部 API key",
+        "type": "text",
+        "val": "",
+        "desc": "環境部環境資料開放平臺會員 API key，於 https://data.moenv.gov.tw/api_term 註冊後取得。使用環境部空氣品質資料源時必須填寫。",
+        "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    },
+    {
+        "id": "@iRingo.WeatherKit.Settings.LogLevel",
+        "name": "[除錯] 日誌等級",
+        "type": "selects",
+        "val": "WARN",
+        "items": [
+            {
+                "key": "OFF",
+                "label": "關閉"
+            },
+            {
+                "key": "ERROR",
+                "label": "❌ 錯誤"
+            },
+            {
+                "key": "WARN",
+                "label": "⚠️ 警告"
+            },
+            {
+                "key": "INFO",
+                "label": "ℹ️ 資訊"
+            },
+            {
+                "key": "DEBUG",
+                "label": "🅱️ 除錯"
+            },
+            {
+                "key": "ALL",
+                "label": "全部"
+            }
+        ],
+        "desc": "選擇腳本日誌的輸出等級，低於所選等級的日誌將全部輸出。"
+    }
+]

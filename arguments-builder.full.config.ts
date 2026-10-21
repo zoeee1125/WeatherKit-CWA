@@ -53,10 +53,11 @@ export const dataSets: Arg[] = [
     {
         key: "DataSets",
         name: "[資料集]",
-        defaultValue: ["currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"],
+        defaultValue: ["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"],
         type: "array",
         description: "選擇需要解析並處理的資料集；未選擇的資料槽始終保持原樣透傳，不作修改。",
         options: [
+            { key: "airQuality", label: "空氣品質" },
             { key: "currentWeather", label: "目前天氣" },
             { key: "forecastDaily", label: "每日預報" },
             { key: "forecastHourly", label: "逐時預報" },
@@ -114,6 +115,20 @@ const weatherAlertsProvider: Arg = {
 
 export const weatherAlerts = [weatherAlertsProvider];
 
+const airQualityProvider: Arg = {
+    key: "AirQuality.Provider",
+    name: "[空氣品質] 資料源",
+    defaultValue: "Environment",
+    type: "string",
+    options: [
+        { key: "WeatherKit", label: "WeatherKit（不替換）" },
+        { key: "Environment", label: "環境部（臺灣）" },
+    ],
+    description: "使用選定的資料源替換空氣品質資料。環境部只提供臺灣測站資料，且需要填寫開放資料平台 API key。",
+};
+
+export const airQuality = [airQualityProvider];
+
 export const api: Arg[] = [
     {
         key: "API.CWA.Token",
@@ -122,6 +137,14 @@ export const api: Arg[] = [
         type: "string",
         placeholder: "CWA-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
         description: "中央氣象署開放資料平台會員授權碼，於 https://opendata.cwa.gov.tw/ 取得。使用中央氣象署資料源時必須填寫。",
+    },
+    {
+        key: "API.Environment.Token",
+        name: "[API] 環境部 API key",
+        defaultValue: "",
+        type: "string",
+        placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        description: "環境部環境資料開放平臺會員 API key，於 https://data.moenv.gov.tw/api_term 註冊後取得。使用環境部空氣品質資料源時必須填寫。",
     },
 ];
 
@@ -161,5 +184,5 @@ export const logLevel: Arg[] = [
 
 export default defineConfig({
     output,
-    args: [...dataSetsFull, ...weatherFull, ...weatherAlerts, ...api, ...storage, ...logLevel],
+    args: [...dataSetsFull, ...weatherFull, ...weatherAlerts, ...airQuality, ...api, ...storage, ...logLevel],
 });

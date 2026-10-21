@@ -51,12 +51,38 @@ export interface Settings {
          */
         Provider?: 'WeatherKit' | 'CWA';
 };
+    AirQuality?: {
+    /**
+         * [空氣品質] 資料源
+         *
+         * 使用選定的資料源替換空氣品質資料。環境部只提供臺灣測站資料，且需要填寫開放資料平台 API key。
+         *
+         * @remarks
+         *
+         * Possible values:
+         * - `'WeatherKit'` - WeatherKit（不替換）
+         * - `'Environment'` - 環境部（臺灣）
+         *
+         * @defaultValue "Environment"
+         */
+        Provider?: 'WeatherKit' | 'Environment';
+};
     API?: {
     CWA?: {
             /**
          * [API] 中央氣象署授權碼
          *
          * 中央氣象署開放資料平台會員授權碼，於 https://opendata.cwa.gov.tw/ 取得。使用中央氣象署資料源時必須填寫。
+         *
+         * @defaultValue ""
+         */
+        Token?: string;
+};
+    Environment?: {
+        /**
+         * [API] 環境部 API key
+         *
+         * 環境部環境資料開放平臺會員 API key，於 https://data.moenv.gov.tw/api_term 註冊後取得。使用環境部空氣品質資料源時必須填寫。
          *
          * @defaultValue ""
          */

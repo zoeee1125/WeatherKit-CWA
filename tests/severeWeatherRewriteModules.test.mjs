@@ -229,20 +229,23 @@ test("CWA-only settings expose the provider, datasets, token, and Traditional Ch
     assert.match(full, /key: "Weather\.Provider"[\s\S]*defaultValue: "CWA"[\s\S]*key: "WeatherKit"[\s\S]*key: "CWA"/);
     assert.match(full, /key: "WeatherAlerts\.Provider"[\s\S]*defaultValue: "CWA"[\s\S]*key: "WeatherKit"[\s\S]*key: "CWA"/);
     assert.doesNotMatch(full, /ColorfulClouds|QWeather|WAQI/);
+    assert.match(full, /key: "AirQuality\.Provider"[\s\S]*defaultValue: "Environment"[\s\S]*key: "WeatherKit"[\s\S]*key: "Environment"/);
+    assert.match(full, /key: "API\.Environment\.Token"/);
 
     assert.match(full, /export const weather = \[weatherProvider\]/);
     assert.match(full, /export const weatherAlerts = \[weatherAlertsProvider\]/);
-    assert.match(release, /import \{[^}]*dataSets[^}]*weather[^}]*weatherAlerts[^}]*\} from "\.\/arguments-builder\.full\.config"/);
-    assert.match(release, /args: \[\.\.\.dataSets, \.\.\.weather, \.\.\.weatherAlerts, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
-    assert.match(dev, /import \{[^}]*dataSetsFull[^}]*weatherFull[^}]*\} from "\.\/arguments-builder\.full\.config"/);
-    assert.match(dev, /args: \[\.\.\.dataSetsFull, \.\.\.weatherFull, \.\.\.weatherAlerts, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
+    assert.match(release, /import \{[^}]*airQuality[^}]*dataSets[^}]*weather[^}]*weatherAlerts[^}]*\} from "\.\/arguments-builder\.full\.config"/);
+    assert.match(release, /args: \[\.\.\.dataSets, \.\.\.weather, \.\.\.weatherAlerts, \.\.\.airQuality, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
+    assert.match(dev, /import \{[^}]*airQuality[^}]*dataSetsFull[^}]*weatherFull[^}]*\} from "\.\/arguments-builder\.full\.config"/);
+    assert.match(dev, /args: \[\.\.\.dataSetsFull, \.\.\.weatherFull, \.\.\.weatherAlerts, \.\.\.airQuality, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
 
     // 發布版資料集只包含中央氣象署實際提供的四項。
     // The release dataset list only contains what CWA actually provides.
     const releaseDataSets = full.slice(full.indexOf("export const dataSets:"), full.indexOf("export const dataSetsFull:"));
     assert.match(releaseDataSets, /name: "\[資料集\]"/);
-    assert.match(releaseDataSets, /defaultValue: \["currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"\]/);
+    assert.match(releaseDataSets, /defaultValue: \["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"\]/);
     for (const [key, label] of [
+        ["airQuality", "空氣品質"],
         ["currentWeather", "目前天氣"],
         ["forecastDaily", "每日預報"],
         ["forecastHourly", "逐時預報"],
@@ -250,11 +253,11 @@ test("CWA-only settings expose the provider, datasets, token, and Traditional Ch
     ]) {
         assert.match(releaseDataSets, new RegExp(`key: "${key}", label: "${label}"`));
     }
-    assert.doesNotMatch(releaseDataSets, /airQuality|forecastNextHour|news|locationInfo|trendComparison|weatherChange/);
+    assert.doesNotMatch(releaseDataSets, /forecastNextHour|news|locationInfo|trendComparison|weatherChange/);
 
     assert.match(database, /Weather: \{ Provider: "CWA" \}/);
     assert.match(database, /WeatherAlerts: \{ Provider: "CWA" \}/);
-    assert.match(database, /API: \{ CWA: \{ Token: "" \} \}/);
+    assert.match(database, /API: \{ CWA: \{ Token: "" \}, Environment: \{ Token: "" \} \}/);
     assert.match(types, /Provider\?: 'WeatherKit' \| 'CWA'/);
     assert.match(boxjs, /@iRingo\.WeatherKit\.Settings\.WeatherAlerts\.Provider[\s\S]*"val":\s*"CWA"[\s\S]*"key":\s*"WeatherKit"/);
 

@@ -2,10 +2,11 @@ export default {
     WeatherKit: {
         Settings: {
             // 只有外掛會修改的產品允許被設定關閉；其餘 Apple 資料集必須始終透傳。
-            DataSets: ["currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"],
+            DataSets: ["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"],
             Weather: { Provider: "CWA" },
             WeatherAlerts: { Provider: "CWA" },
-            API: { CWA: { Token: "" } },
+            AirQuality: { Provider: "Environment", UseFixture: false },
+            API: { CWA: { Token: "" }, Environment: { Token: "" } },
         },
         Configs: {
             Availability: {

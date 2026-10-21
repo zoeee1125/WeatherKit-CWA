@@ -1,4 +1,5 @@
 import { Lodash as _, Console, Storage } from "@nsnanocat/util";
+import AirQualityScale from "../class/AirQualityScale.mjs";
 import CWA from "../class/CWA.mjs";
 import WeatherAlerts from "../class/WeatherAlerts.mjs";
 import database from "../function/database.mjs";
@@ -76,6 +77,20 @@ export async function Request($request) {
                         }
                         default:
                             switch (true) {
+                                case url.pathname.startsWith("/api/v1/airQualityScale/"): {
+                                    // 天氣 App 需要本地標準定義才會渲染空氣品質卡片。
+                                    // The Weather app needs a local scale definition before rendering air quality.
+                                    const scaleName = AirQualityScale.StripVersion(parameters.scale);
+                                    const built = scaleName ? new AirQualityScale().Build(parameters.language, scaleName) : undefined;
+                                    if (built) {
+                                        $response = built;
+                                    } else if (scaleName) {
+                                        // 未知標準移除版本後綴，避免 Apple 回 404。
+                                        // Strip the version suffix on unknown scales to avoid a 404 from Apple.
+                                        url.pathname = `/api/${parameters.version}/airQualityScale/${parameters.language}/${scaleName}`;
+                                    }
+                                    break;
+                                }
                                 case url.pathname.startsWith("/api/v2/weather/"): {
                                     // 解決 macOS 天氣 app 如果使用國際版 Maps 時，country 遺失而不顯示未來一小時降水的問題
                                     switch (true) {

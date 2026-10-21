@@ -58,7 +58,7 @@ test("request preserves WeatherKit dataSets independently of the response proces
 });
 
 test("default processed datasets match the release configuration", () => {
-    assert.deepEqual(database.WeatherKit.Settings.DataSets, ["currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"]);
+    assert.deepEqual(database.WeatherKit.Settings.DataSets, ["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"]);
 });
 
 test("request dataSet names map to FlatBuffer root slots", () => {
@@ -78,8 +78,10 @@ test("request dataSet names map to FlatBuffer root slots", () => {
 
 test("provider API defaults live in the database", () => {
     assert.equal(database.WeatherKit.Settings.API.CWA.Token, "");
+    assert.equal(database.WeatherKit.Settings.API.Environment.Token, "");
     assert.equal(database.WeatherKit.Settings.Weather.Provider, "CWA");
     assert.equal(database.WeatherKit.Settings.WeatherAlerts.Provider, "CWA");
+    assert.equal(database.WeatherKit.Settings.AirQuality.Provider, "Environment");
 });
 
 test("availability keeps Apple's capabilities and appends plugin requirements in prod and dev", async () => {

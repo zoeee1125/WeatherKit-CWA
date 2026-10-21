@@ -39,6 +39,18 @@
 - 風速會從 CWA 的 m/s 換算為 WeatherKit 的 km/h。
 - 授權碼請勿提交到倉庫或公開分享；本倉庫的預設值為空字串。
 
+## 訂閱與更新
+
+模組與腳本都使用固定的 `releases/latest/download/` 連結，因此**訂閱一次即可**，之後發布新版本時 Surge 會自動更新，不需要重新安裝。
+
+訂閱網址：
+
+```text
+https://github.com/zoeee1125/WeatherKit-CWA/releases/latest/download/iRingo.WeatherKit.sgmodule
+```
+
+在 Surge → 模組 → 新增 → 貼上網址，即會以訂閱形式安裝並自動檢查更新。若要手動更新，在模組頁下拉重新整理即可。
+
 ## 建置
 
 本倉庫已把 Apple WeatherKit 的 FlatBuffers 綁定內嵌為本地套件 `packages/weatherkit-schema`，所有相依都來自公開 npm，因此不需要任何 GitHub Packages 憑證：
@@ -49,4 +61,4 @@ npm run build          # 產生 dist/request.bundle.js 與 dist/response.bundle.
 npm run build:args     # 產生 dist/iRingo.WeatherKit.sgmodule 等模組
 ```
 
-模組內的 `script-path` 指向本倉庫的 Release 資源，因此請透過推送 `vX.Y.Z` 標籤讓 GitHub Actions 建立 Release，再安裝該 Release 內的 `iRingo.WeatherKit.sgmodule`。
+推送 `vX.Y.Z` 標籤會觸發 GitHub Actions 建立 Release；`latest` 永遠指向最新的非預先發布版本，訂閱端因此會自動取得新內容。

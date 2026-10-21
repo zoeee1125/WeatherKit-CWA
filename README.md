@@ -13,10 +13,15 @@
 ## 快速開始
 
 1. 在 <https://opendata.cwa.gov.tw/> 取得授權碼
-2. 安裝 Release 內的 `iRingo.WeatherKit.sgmodule`
+2. 在 Surge → 模組 → 新增，貼上訂閱網址：
+
+   ```text
+   https://github.com/zoeee1125/WeatherKit-CWA/releases/latest/download/iRingo.WeatherKit.sgmodule
+   ```
+
 3. 在 BoxJs 的 `iRingo.WeatherKit` 填入 `[API] 中央氣象署授權碼`
 
-完整說明、資料集對應與已知限制見 [docs/cwa-provider.md](docs/cwa-provider.md)。
+訂閱一次即可，之後發布新版本時 Surge 會自動更新。完整說明、資料集對應與已知限制見 [docs/cwa-provider.md](docs/cwa-provider.md)。
 
 ## 授權
 

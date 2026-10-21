@@ -42,6 +42,11 @@ export default function providerNameToLogo(providerName, version = "v2") {
         case "和风天气":
             providerLogo = `https://weatherkit.apple.com/assets/${version}/QWeather.png`;
             break;
+        case "CWA":
+        case "中央氣象署":
+        case "中央气象署":
+            providerLogo = `https://raw.githubusercontent.com/NSRingo/WeatherKit/main/images/icon/${version}/CWA.png`;
+            break;
         case "The Weather Channel":
             providerLogo = `https://weatherkit.apple.com/assets/${version}/TWC.png`;
             break;

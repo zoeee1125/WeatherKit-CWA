@@ -2,6 +2,7 @@ import { Console, Storage } from "@nsnanocat/util";
 import * as flatbuffers from "flatbuffers";
 import AirQuality from "../class/AirQuality.mjs";
 import ColorfulClouds from "../class/ColorfulClouds.mjs";
+import CWA from "../class/CWA.mjs";
 import MatchEnum from "../class/MatchEnum.mjs";
 import QWeather from "../class/QWeather.mjs";
 import WAQI from "../class/WAQI.mjs";
@@ -13,6 +14,7 @@ import mergeWeatherKitAvailability from "../function/mergeWeatherKitAvailability
 import parseWeatherKitURL from "../function/parseWeatherKitURL.mjs";
 import providerNameToLogo from "../function/providerNameToLogo.mjs";
 import setENV from "../function/setENV.mjs";
+import shouldReplaceWeather from "../function/shouldReplaceWeather.mjs";
 /***************** Processing *****************/
 export async function Response($request, $response) {
     // 解构URL
@@ -113,6 +115,7 @@ export async function Response($request, $response) {
                                 }
                                 const enviroments = {
                                     colorfulClouds: new ColorfulClouds(providerParameters, Settings?.API?.ColorfulClouds?.Token || "Y2FpeXVuX25vdGlmeQ=="),
+                                    cwa: new CWA(providerParameters, Settings?.API?.CWA?.Token),
                                     qWeather: new QWeather(providerParameters, Settings?.API?.QWeather?.Token || "bdd98ec1d87747f3a2e8b1741a5af796", Settings?.API?.QWeather?.Host),
                                     waqi: new WAQI(parameters, Settings?.API?.WAQI?.Token),
                                     country: parameters.country,
@@ -216,7 +219,7 @@ export async function Response($request, $response) {
  */
 async function InjectCurrentWeather(currentWeather, Settings, enviroments) {
     Console.info("☑️ InjectCurrentWeather");
-    if (!Settings?.Weather?.Replace?.includes(enviroments.country)) {
+    if (!shouldReplaceWeather(Settings, enviroments)) {
         Console.warn("InjectCurrentWeather", `Unreplaced country: ${enviroments.country}`);
         Console.info("✅ InjectCurrentWeather");
         return currentWeather;
@@ -232,6 +235,10 @@ async function InjectCurrentWeather(currentWeather, Settings, enviroments) {
         }
         case "ColorfulClouds": {
             newCurrentWeather = await enviroments.colorfulClouds.CurrentWeather();
+            break;
+        }
+        case "CWA": {
+            newCurrentWeather = await enviroments.cwa.CurrentWeather();
             break;
         }
     }
@@ -254,7 +261,7 @@ async function InjectCurrentWeather(currentWeather, Settings, enviroments) {
  */
 async function InjectForecastDaily(forecastDaily, Settings, enviroments) {
     Console.info("☑️ InjectForecastDaily");
-    if (!Settings?.Weather?.Replace?.includes(enviroments.country)) {
+    if (!shouldReplaceWeather(Settings, enviroments)) {
         Console.warn("InjectForecastDaily", `Unreplaced country: ${enviroments.country}`);
         Console.info("✅ InjectForecastDaily");
         return forecastDaily;
@@ -273,6 +280,10 @@ async function InjectForecastDaily(forecastDaily, Settings, enviroments) {
             const begin = forecastDaily?.days?.[0]?.forecastStart;
             //Console.debug(`dailysteps: ${dailysteps}, begin: ${begin}`);
             newForecastDaily = await enviroments.colorfulClouds.Daily(dailysteps, begin);
+            break;
+        }
+        case "CWA": {
+            newForecastDaily = await enviroments.cwa.Daily();
             break;
         }
     }
@@ -295,7 +306,7 @@ async function InjectForecastDaily(forecastDaily, Settings, enviroments) {
  */
 async function InjectForecastHourly(forecastHourly, Settings, enviroments) {
     Console.info("☑️ InjectForecastHourly");
-    if (!Settings?.Weather?.Replace?.includes(enviroments.country)) {
+    if (!shouldReplaceWeather(Settings, enviroments)) {
         Console.warn("InjectForecastHourly", `Unreplaced country: ${enviroments.country}`);
         Console.info("✅ InjectForecastHourly");
         return forecastHourly;
@@ -314,6 +325,10 @@ async function InjectForecastHourly(forecastHourly, Settings, enviroments) {
             const begin = forecastHourly?.hours?.[0]?.forecastStart;
             //Console.debug(`hourlysteps: ${hourlysteps}, begin: ${begin}`);
             newForecastHourly = await enviroments.colorfulClouds.ForecastHourly(hourlysteps, begin);
+            break;
+        }
+        case "CWA": {
+            newForecastHourly = await enviroments.cwa.Hourly();
             break;
         }
     }
@@ -387,6 +402,10 @@ async function InjectWeatherAlerts(weatherAlerts, Settings, enviroments) {
         }
         case "QWeather": {
             if (isNationalWarningCenter) newWeatherAlerts = await enviroments.qWeather.WeatherAlert();
+            break;
+        }
+        case "CWA": {
+            newWeatherAlerts = await enviroments.cwa.WeatherAlert();
             break;
         }
         case "QWeatherWeb":

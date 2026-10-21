@@ -1,6 +1,7 @@
 import { Lodash as _, Console, Storage } from "@nsnanocat/util";
 import AirQualityScale from "../class/AirQualityScale.mjs";
 import ColorfulClouds from "../class/ColorfulClouds.mjs";
+import CWA from "../class/CWA.mjs";
 import QWeather from "../class/QWeather.mjs";
 import WeatherAlerts from "../class/WeatherAlerts.mjs";
 import database from "../function/database.mjs";
@@ -176,6 +177,18 @@ async function GetWeatherAlerts(identifier, parameters, Settings, headers) {
                             identifier: `${parameters.latitude},${parameters.longitude}`,
                             language: parameters.language,
                             countryCode: parameters.country,
+                        });
+                        break;
+                    }
+                    case "CWA": {
+                        Console.info("☑️ CWA.WeatherAlert", `ids: ${identifier}`);
+                        const cwa = new CWA(parameters, Settings?.API?.CWA?.Token);
+                        const source = await cwa.WeatherAlert();
+                        body = WeatherAlerts.Build(source, {
+                            attributionUrl: source?.metadata?.attributionUrl ?? "https://www.cwa.gov.tw/V8/C/P/Warning.html",
+                            identifier: `${parameters.latitude},${parameters.longitude}`,
+                            language: parameters.language,
+                            countryCode: "TW",
                         });
                         break;
                     }

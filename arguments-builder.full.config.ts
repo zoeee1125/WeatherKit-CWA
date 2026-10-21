@@ -100,14 +100,15 @@ const weatherReplace: Arg = {
 const weatherProvider: Arg = {
     key: "Weather.Provider",
     name: "[天气] 数据源",
-    defaultValue: "ColorfulClouds",
+    defaultValue: "CWA",
     type: "string",
     options: [
         { key: "WeatherKit", label: "WeatherKit（不替换）" },
         { key: "ColorfulClouds", label: "彩云天气" },
         { key: "QWeather", label: "和风天气" },
+        { key: "CWA", label: "中央气象署（台湾）" },
     ],
-    description: "使用选定的数据源替换天气数据。",
+    description: "使用选定的数据源替换天气数据。中央气象署只提供台湾地区资料，且需要填写开放资料平台授权码。",
 };
 
 export const weather = [weatherProvider];
@@ -116,15 +117,16 @@ export const weatherFull = [weatherReplace, weatherProvider];
 const weatherAlertsProvider: Arg = {
     key: "WeatherAlerts.Provider",
     name: "[天气预警] 数据源",
-    defaultValue: "QWeatherWeb",
+    defaultValue: "CWA",
     type: "string",
     options: [
         { key: "WeatherKit", label: "WeatherKit（不修改）" },
         { key: "QWeatherWeb", label: "和风天气网页" },
         { key: "QWeather", label: "和风天气 API" },
         { key: "ColorfulClouds", label: "彩云天气 API" },
+        { key: "CWA", label: "中央气象署（台湾）" },
     ],
-    description: "使用选定的数据源处理天气预警数据。",
+    description: "使用选定的数据源处理天气预警数据。中央气象署使用开放资料平台的天气警报与台风警报资料集。",
 };
 
 export const weatherAlerts = [weatherAlertsProvider];
@@ -311,6 +313,14 @@ export const calculate = [calculateAlgorithm];
 export const calculateFull = [calculateAlgorithm, calculateAllowOverRange];
 
 export const api: Arg[] = [
+    {
+        key: "API.CWA.Token",
+        name: "[API] 中央气象署授权码",
+        defaultValue: "",
+        type: "string",
+        placeholder: "CWA-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+        description: "中央气象署开放资料平台会员授权码，于 https://opendata.cwa.gov.tw/ 取得。使用中央气象署资料源时必须填写。",
+    },
     {
         key: "API.ColorfulClouds.Token",
         name: "[API] 彩云天气令牌",

@@ -51,13 +51,14 @@ export interface Settings {
          * - `'WeatherKit'` - WeatherKit（不替换）
          * - `'ColorfulClouds'` - 彩云天气
          * - `'QWeather'` - 和风天气
+         * - `'CWA'` - 中央气象署（台湾）
          *
-         * @defaultValue "ColorfulClouds"
+         * @defaultValue "CWA"
          */
-        Provider?: "WeatherKit" | "ColorfulClouds" | "QWeather";
+        Provider?: "WeatherKit" | "ColorfulClouds" | "QWeather" | "CWA";
     };
     WeatherAlerts?: {
-        Provider?: "WeatherKit" | "QWeatherWeb" | "QWeather" | "ColorfulClouds";
+        Provider?: "WeatherKit" | "QWeatherWeb" | "QWeather" | "ColorfulClouds" | "CWA";
     };
     NextHour?: {
         /**
@@ -289,6 +290,16 @@ export interface Settings {
         };
     };
     API?: {
+        CWA?: {
+            /**
+             * [API] 中央气象署授权码
+             *
+             * 中央气象署开放资料平台会员授权码，于 https://opendata.cwa.gov.tw/ 取得。使用中央气象署资料源时必须填写。
+             *
+             * @defaultValue ""
+             */
+            Token?: string;
+        };
         ColorfulClouds?: {
             /**
              * [API] 彩云天气令牌

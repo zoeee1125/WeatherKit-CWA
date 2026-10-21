@@ -17,16 +17,49 @@ export default class AirQualityScale {
     static Version = "1.0.0";
     static Author = "iRingo";
 
+    /** 標準識別碼 / Scale identifier. */
+    static ScaleName = "TW.AQI";
+
+    /**
+     * 修訂版號。
+     * Revision number.
+     *
+     * 只要更動這份定義的任何顯示內容（名稱、顏色、等級、建議），就必須遞增這個數字。
+     * 天氣 App 會把回應中的 `version` 接在標準識別碼後面再次請求，因此改版號等於換一個
+     * 新的 URL，可以繞過 App 與系統 HTTP 快取裡舊的回應。
+     * Bump this whenever anything user-visible changes (names, colors, levels, advice).
+     * The Weather app re-requests the scale with the response's `version` appended, so a new
+     * revision means a new URL, which bypasses the app's and the HTTP cache's stale copy.
+     */
+    static Revision = 2;
+
+    /**
+     * 注入到氣象資料中的標準識別碼（含修訂版號）。
+     * Scale identifier handed to the Weather app, including the revision.
+     *
+     * `Request.mjs` 會以 {@link StripVersion} 去掉尾碼後再查表，所以這裡帶版號是安全的。
+     * `Request.mjs` strips the suffix with {@link StripVersion} before looking the scale up,
+     * so carrying the revision here is safe.
+     */
+    static get RequestName() {
+        return `${AirQualityScale.ScaleName}.${AirQualityScale.Revision}`;
+    }
+
     /**
      * 支援的標準名稱（不含版本後綴）。
      * Supported scale identifiers without the trailing version.
      */
-    static ScaleNames = ["TW.AQI"];
+    static ScaleNames = [AirQualityScale.ScaleName];
 
     #Config = {
         Headers: {
             "Content-Type": "application/json",
-            "Cache-Control": "max-age=31536000, public, s-maxage=31536000",
+            // 這份定義由本地產生，不需要向 Apple 取得，因此沒有必要快取；設成一年只會讓
+            // 每次改版都要手動清快取。no-store 讓修改在下一次請求就生效。
+            // The definition is generated locally rather than fetched from Apple, so caching buys
+            // nothing and a one-year TTL only forces manual cache clearing after every edit.
+            // `no-store` makes changes take effect on the next request.
+            "Cache-Control": "no-store, max-age=0",
         },
         Language: {
             en: "en-US",
@@ -39,13 +72,13 @@ export default class AirQualityScale {
         AirQualityScale: {
             "TW.AQI": {
                 "zh-Hant-TW": {
-                    name: "TW.AQI",
+                    name: AirQualityScale.ScaleName,
                     displayName: "AQI",
                     shortDisplayName: "AQI",
                     longDisplayName: "空氣品質指標",
                     displayLabel: "空氣品質",
                     language: "zh-Hant-TW",
-                    version: 1,
+                    version: AirQualityScale.Revision,
                     aqi: {
                         numerical: true,
                         ascending: true,
@@ -71,13 +104,13 @@ export default class AirQualityScale {
                     },
                 },
                 "en-US": {
-                    name: "TW.AQI",
+                    name: AirQualityScale.ScaleName,
                     displayName: "AQI",
                     shortDisplayName: "AQI",
                     longDisplayName: "Air Quality Index",
                     displayLabel: "Air Quality",
                     language: "en-US",
-                    version: 1,
+                    version: AirQualityScale.Revision,
                     aqi: {
                         numerical: true,
                         ascending: true,

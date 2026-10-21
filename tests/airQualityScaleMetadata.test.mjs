@@ -19,7 +19,7 @@ test("TW.AQI 的顯示名稱不帶國家後綴", () => {
     assert.equal(zh.shortDisplayName, "AQI");
     assert.equal(zh.longDisplayName, "空氣品質指標");
     assert.equal(zh.displayLabel, "空氣品質");
-    assert.equal(zh.version, 1);
+    assert.equal(zh.version, AirQualityScale.Revision);
 
     const en = JSON.parse(new AirQualityScale().Build("en-US", "TW.AQI").body);
 
@@ -27,6 +27,14 @@ test("TW.AQI 的顯示名稱不帶國家後綴", () => {
     assert.equal(en.shortDisplayName, "AQI");
     assert.equal(en.longDisplayName, "Air Quality Index");
     assert.equal(en.displayLabel, "Air Quality");
+});
+
+test("空氣品質標準不快取，避免改版後仍顯示舊內容", () => {
+    // 這份定義由本地產生，不快取沒有任何頻寬成本；不快取才能讓改版立刻生效。
+    // The definition is generated locally, so caching costs nothing; not caching makes edits
+    // take effect immediately.
+    const built = new AirQualityScale().Build("zh-Hant-TW", "TW.AQI");
+    assert.match(built.headers["Cache-Control"], /no-store/);
 });
 
 test("未知標準仍回傳 undefined，交由呼叫端透傳", () => {

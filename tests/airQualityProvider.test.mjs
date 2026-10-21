@@ -144,7 +144,7 @@ test("air-quality fixture produces a complete WeatherKit fragment", async () => 
     const current = await provider.Current();
 
     assert.equal(provider.available, true);
-    assert.equal(current.scale, "TW.AQI");
+    assert.equal(current.scale, AirQualityScale.RequestName);
     assert.equal(current.index, 72);
     assert.equal(current.categoryIndex, 2);
     assert.equal(current.primaryPollutant, "PM2_5");
@@ -184,7 +184,10 @@ test("air-quality fragment round-trips through the FlatBuffer codec", async () =
     const rawBody = WeatherKit2.encode(undefined, { airQuality: merged });
     const decoded = WeatherKit2.decode(new ByteBuffer(rawBody), ["airQuality"]);
 
-    assert.equal(decoded.airQuality.scale, "TW.AQI");
+    // 注入的標準識別碼帶修訂版號，用來讓天氣 App 重新抓取定義（見 AirQualityScale.Revision）。
+    // The injected scale carries the revision so the Weather app refetches the definition.
+    assert.equal(decoded.airQuality.scale, AirQualityScale.RequestName);
+    assert.equal(decoded.airQuality.scale, "TW.AQI.2");
     assert.equal(decoded.airQuality.index, 72);
     assert.equal(decoded.airQuality.categoryIndex, 2);
     assert.equal(decoded.airQuality.pollutants.length, 8);

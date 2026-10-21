@@ -1,4 +1,5 @@
 import { Console, fetch } from "@nsnanocat/util";
+import AirQualityScale from "./AirQualityScale.mjs";
 
 /**
  * 空氣品質資料來源。
@@ -16,8 +17,8 @@ export default class AirQuality {
 
     static Endpoint = "https://data.moenv.gov.tw/api/v2/aqx_p_432";
 
-    /** 使用的標準名稱 / Scale identifier. */
-    static Scale = "TW.AQI";
+    /** 使用的標準名稱 / Scale identifier（含修訂版號，供 App 快取破版用）。 */
+    static Scale = AirQualityScale.RequestName;
 
     /** 空氣品質有效期（秒）；測站每小時更新。 / Validity window in seconds; stations update hourly. */
     static ExpirationInterval = 60 * 60;

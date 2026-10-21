@@ -34,6 +34,10 @@ http:
       type: request
       argument:
     - match: ^https?:\/\/weatherkit\.apple\.com\/api\/v2\/weather\/
+      name: WeatherKit.api.v2.weather.request
+      type: request
+      argument:
+    - match: ^https?:\/\/weatherkit\.apple\.com\/api\/v2\/weather\/
       name: WeatherKit.api.v2.weather.response
       type: response
       require-body: true
@@ -44,6 +48,9 @@ script-providers:
     url: https://github.com/zoeee1125/WeatherKit-CWA/releases/latest/download/response.bundle.js
     interval: 86400
   WeatherKit.api.v1.weatherAlerts.request:
+    url: https://github.com/zoeee1125/WeatherKit-CWA/releases/latest/download/request.bundle.js
+    interval: 86400
+  WeatherKit.api.v2.weather.request:
     url: https://github.com/zoeee1125/WeatherKit-CWA/releases/latest/download/request.bundle.js
     interval: 86400
   WeatherKit.api.v2.weather.response:

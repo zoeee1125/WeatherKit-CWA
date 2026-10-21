@@ -207,6 +207,28 @@ test("Dev builds use dev templates, bundles, and output names", async () => {
     assert.match(loon, /api\.v1\.weather\.request/);
 });
 
+test("production templates hook the v2 weather request so country overrides apply", async () => {
+    // country 覆寫在 Request 腳本；正式版若沒有 v2 天氣的 request hook，覆寫永遠不會執行。
+    // The country override lives in the Request script; without a v2 weather request hook in the
+    // production templates it never runs.
+    for (const filename of ["surge.handlebars", "loon.handlebars", "quantumultx.handlebars", "stash.handlebars"]) {
+        const content = await readFile(new URL(`../template/${filename}`, import.meta.url), "utf8");
+        assert.ok(content.includes("api.v2.weather.request"), filename);
+        assert.ok(content.includes("api\\/v2\\/weather\\/"), filename);
+    }
+
+    // Stash 需要對應的 script provider。
+    const stash = await readFile(new URL("../template/stash.handlebars", import.meta.url), "utf8");
+    assert.ok(stash.includes("WeatherKit.api.v2.weather.request:"), "stash provider");
+    assert.ok(/WeatherKit\.api\.v2\.weather\.request:\s*\n\s*url: [^\n]+request\.bundle\.js/.test(stash), "stash provider url");
+
+    // 產生出的正式模組也要帶到這個 hook。
+    for (const filename of ["iRingo.WeatherKit.sgmodule", "iRingo.WeatherKit.lpx", "iRingo.WeatherKit.stoverride"]) {
+        const content = await readFile(new URL(`../dist/${filename}`, import.meta.url), "utf8");
+        assert.ok(content.includes("v2.weather.request"), filename);
+    }
+});
+
 test("Handler generation keeps Loon local and enables Egern", async () => {
     const content = await readFile(new URL("../arguments-builder.full.config.ts", import.meta.url), "utf8");
     assert.match(content, /path: "\.\/dist\/iRingo\.WeatherKit\.lpx"/);

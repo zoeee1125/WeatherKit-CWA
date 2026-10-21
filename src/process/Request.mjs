@@ -97,7 +97,9 @@ export async function Request($request) {
                                     // The air-quality slot follows the country parameter; Taiwan is not on
                                     // Apple's supported list, so it can be rewritten to a supported region.
                                     if (Settings?.AirQuality?.CountryOverride) {
+                                        Console.info("☑️ AirQuality.CountryOverride", `${url.searchParams.get("country")} -> ${Settings.AirQuality.CountryOverride}`);
                                         url.searchParams.set("country", Settings.AirQuality.CountryOverride);
+                                        Console.info("✅ AirQuality.CountryOverride", url.searchParams.get("country"));
                                     }
                                     // 解決 macOS 天氣 app 如果使用國際版 Maps 時，country 遺失而不顯示未來一小時降水的問題
                                     switch (true) {

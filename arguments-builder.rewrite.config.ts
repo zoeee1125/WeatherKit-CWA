@@ -2,12 +2,12 @@ import { defineConfig } from "@iringo/arguments-builder";
 
 const endpoint = {
 	key: "endpoint",
-	name: "[重写] 服务端点",
+	name: "[改寫] 服務端點",
 	defaultValue: "weatherkit.pages.dev",
 	type: "string" as const,
 	options: [
-		{ key: "weatherkit.pages.dev", label: "首选；直连；无需代理" },
-		{ key: "dev.weatherkit.pages.dev", label: "开发版" },
+		{ key: "weatherkit.pages.dev", label: "首選；直連；無需代理" },
+		{ key: "dev.weatherkit.pages.dev", label: "開發版" },
 		{ key: "weather.nanocat.cloud", label: "Worker 版；需要代理" },
 	],
 };

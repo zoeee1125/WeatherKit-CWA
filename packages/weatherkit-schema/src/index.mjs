@@ -1,8 +1,8 @@
 /**
- * Apple WeatherKit FlatBuffers 綁定。
+ * Apple WeatherKit FlatBuffers 繫結。
  * Apple WeatherKit FlatBuffers bindings.
  *
- * 此檔案由 iRingo WeatherKit 的已發佈 bundle 抽出，保留原始壓縮識別碼以確保位元組層級行為一致。
+ * 此檔案由 iRingo WeatherKit 的已釋出 bundle 抽出，保留原始壓縮識別碼以確保位元組層級行為一致。
  * Extracted from the published iRingo WeatherKit bundle; minified identifiers are kept verbatim so
  * field offsets and enum values stay byte-identical.
  *

@@ -41,7 +41,7 @@ export default function parseWeatherKitURL(url = new URL($request.url)) {
             const parameters = url.pathname.match(/^\/api\/(?<version>v1|v2|v3)\/(availability|weather)\/(?<locale>[A-Z0-9]+(?:-[A-Z0-9]+)*)\/(?<latitude>-?\d+\.?\d*)\/(?<longitude>-?\d+\.?\d*)$/i)?.groups;
             const localeParts = parameters?.locale?.split("-") || [];
             let localeCountry;
-            // BCP 47 locale 的末段只有两位字母时才视作地区，保留 zh-Hans 这类 script。
+            // BCP 47 locale 的末段只有兩位字母時才視作地區，保留 zh-Hans 這類 script。
             // Treat the final BCP 47 subtag as a region only when it contains two letters, preserving scripts such as zh-Hans.
             if (localeParts.length > 1 && /^[A-Z]{2}$/i.test(localeParts.at(-1))) localeCountry = localeParts.pop().toUpperCase();
             result.version = parameters?.version;

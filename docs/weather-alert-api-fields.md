@@ -1,112 +1,74 @@
-# WeatherAlert API 字段映射说明
+# WeatherAlert API 欄位對映說明
 
-本文记录 Apple 官方 `alertDetails` 页面、`/api/v1/weatherAlerts` JSON 和本项目 QWeather 转换器之间的字段对应关系。
+本文記錄 Apple 官方 `alertDetails` 頁面、`/api/v1/weatherAlerts` JSON 與本專案中央氣象署（CWA）轉換器之間的欄位對應關係。
 
-## 官方入口与请求参数
+## 官方入口與請求參數
 
-官方页面入口：
+官方頁面入口：
 
 ```text
 https://weatherkit.apple.com/alertDetails/index.html?ids={ids}&lang={language}&party={party}
 ```
 
-页面 bundle 会读取以下查询参数：
+頁面 bundle 會讀取以下查詢參數：
 
-| 参数 | 官方页面用途 | 本项目用法 |
+| 參數 | 官方頁面用途 | 本專案用法 |
 | --- | --- | --- |
-| `ids` | 传给 `/api/v1/weatherAlerts?lang=...&ids=...` 获取预警 JSON。官方形态通常是逗号分隔 WeatherAlert UUID。 | 内置 HTML 路径从 FlatBuffer 的 QWeather `/severe-weather/{identifier}.html?from=AppleWeatherService` 链接提取地区标识；用户 API 路径继续使用经纬度。模块/模板同时接管两种形式，且 `ids` 前必须已有查询参数。 |
-| `lang` | 选择页面本地化文案，并筛选 `messages[].language`。 | 内置路径选择 QWeather HTML 页面语言；用户 API 路径继续传给所选 API；最终写回 `messages[].language`。 |
-| `party` | 页面上下文标识，会影响脚注/归因渲染。 | 内置 HTML 路径固定为小写 `qweather`；用户 API 路径保留所选 `WeatherAlerts.Provider`。 |
+| `ids` | 傳給 `/api/v1/weatherAlerts?lang=...&ids=...` 取得預警 JSON。官方形態通常是逗號分隔的 WeatherAlert UUID。 | 只接管「經緯度」形態（`lat,lon`），因為中央氣象署以鄉鎮範圍發布警特報。`ids` 前必須已有查詢參數。 |
+| `lang` | 選擇頁面本地化文案，並篩選 `messages[].language`。 | 直接傳給 CWA 請求與 `WeatherAlerts.Build`，最終寫回 `messages[].language`。 |
+| `party` | 頁面上下文標識，會影響腳註／歸因渲染。 | 固定為 `CWA`。 |
 
-官方页面实际请求数据时只拼接：
+官方頁面實際請求資料時只拼接：
 
 ```text
 /api/v1/weatherAlerts?lang={lang}&ids={ids}
 ```
 
-`timezone` 和 `party` 不传给 API，只影响页面渲染。
+`timezone` 與 `party` 不傳給 API，只影響頁面渲染。
 
-## 官方页面显式渲染字段
+## 官方頁面顯式渲染欄位
 
-官方 bundle 的页面处理流程是：先解析 `/api/v1/weatherAlerts` 返回的数组，再过滤出有效事件。有效事件至少需要：
+官方 bundle 的處理流程是：先解析 `/api/v1/weatherAlerts` 回傳的陣列，再過濾出有效事件。有效事件至少需要：
 
 - `description`
 - `severity`
 - `effectiveTime`
 - `source`
 
-页面会直接渲染或显式消费以下字段：
+## CWA 資料集與欄位來源
 
-| JSON 字段 | 页面位置 | 官方处理 | 本项目当前填充值 |
-| --- | --- | --- | --- |
-| `description` | 卡片标题 | 作为每张预警卡片标题。 | 优先归一化来源 `headline`；无法取得有效标题时回退来源已本地化的 `eventName`，例如 `高温橙色预警`。 |
-| `severity` | 严重程度区块 | 显示本地化严重程度文案。 | QWeather `severity` 规范化为 `extreme` / `severe` / `moderate` / `minor` / `unknown`。 |
-| `eventOnsetTime` | “天气事件发生”区块 | 有值才显示，按 `timezone` 格式化。 | QWeather `onsetTime`，没有则回退 `effectiveTime`。HTML 分支回退发布时间。 |
-| `messages[].text` | 描述区块 | 会处理换行和 URL 自动链接；多语言消息按 `lang` 筛选。 | `description`、`criteria`、防御指南按空行拼接；防御指南继续保留在描述中。 |
-| `messages[].language` | 描述区块方向和筛选 | 用于语言筛选和文字方向。 | 来自页面 `lang` 参数。 |
-| `responses[]` | 建议的行动 | 固定枚举 token 会被转换为本地化行动文案。 | 优先用 QWeather `responseTypes`；没有则从防御指南推断。 |
-| `urgency` | 紧急程度区块 | 有值才显示本地化紧急程度文案。 | QWeather `urgency` 规范化；没有则 `unknown`。 |
-| `areaName` | 受影响区域区块 | 有值才显示。 | QWeather `areaName`；HTML 分支使用页面城市/行政区。 |
-| `source` | 签发者区块 | 作为“签发者 / Issued By”的主文本。 | QWeather `senderName`，或 HTML 标题里的 `xxx气象台`；不是数据来源网站。 |
-| `reportedAt` | 签发者区块脚注 | 官方脚本只在 `eventSource === "EUMETNET"` 时保留；其他来源会置空。 | 仍写入发布时间，供兼容和非官方渲染使用；Apple 官方页面对 CN 不显示。 |
-| `attributionURL` | “查看警报来源”链接 | 作为签发者区块下的来源链接。 | API 分支使用 `https://www.12379.cn/`；HTML 分支使用对应 QWeather 页面。 |
-| `eventSource` | 脚注/免责声明逻辑 | 不单独显示；用于 EUMETNET 免责声明和部分国家脚注。 | 中国预警写 `CN`。 |
-
-`responses[]` 支持的官方枚举顺序：
-
-```text
-evacuate, shelter, execute, prepare, avoid, monitor, assess, allClear, none
-```
-
-如果 `responses` 同时包含多个动作且包含 `none`，官方页面会移除 `none`，避免“无需行动”和其他行动同时出现。
-
-注意枚举大小写边界：`/api/v1/weatherAlerts` 的 `alertDetails` JSON 使用上面的官方小写 token；v2 FlatBuffer 解码/编码使用 `WK2` 枚举 key，例如 `SEVERE` / `UNKNOWN` / `HIGH` / `AVOID`。`mergeAlerts(to, from)` 写回 v2 `weatherAlerts.alerts[]` 时会把 QWeather 标准化结果转换为 FlatBuffer 大写枚举，不把 REST 小写 token 直接写入 flatbuffer。
-
-## 官方页面间接使用或不显示的字段
-
-这些字段属于官方 JSON 结构，但 `alertDetails` 页面不会直接画成一行：
-
-| JSON 字段 | 页面用途 | 本项目当前策略 |
+| WeatherKit 欄位 | CWA 來源 | 說明 |
 | --- | --- | --- |
-| `id` | React key、锚点、详情链接片段。 | 用来源标识和预警标识生成稳定 UUID。 |
-| `detailsUrl` | 官方 JSON 中通常是 `#{id}`。 | 写为 `#{id}`。 |
-| `areaId` | 官方 JSON 保留字段，页面不显示。 | QWeather 有 `areaId` / `areaCode` 就透传；HTML 分支从页面标识末尾行政代码取得。 |
-| `countryCode` | 官方 JSON 保留字段，页面不显示。 | 坐标/API 分支默认 `CN`；页面标识以 `101` 开头也写 `CN`。 |
-| `effectiveTime` | 有效事件必需字段，页面不单独显示。 | QWeather `effectiveTime`，没有则用 `issuedTime`。 |
-| `expireTime` | 参与时间对象转换；9999 年会被官方页面置空。 | QWeather `expireTime` / `expiresTime`；HTML 分支用 `9999-12-31T23:59:59Z`。 |
-| `eventEndTime` | `alertDetails` 页面不单独成块；Weather App 预警摘要会用它生成“持续到 / Until”文案。 | QWeather `eventEndTime` / `endTime` / `expireTime`；v2 FlatBuffer 补全时若 QWeather 无结束字段，则用原始 alert 的 `expireTime` 补 `eventEndTime`。 |
-| `issuedTime` | 官方 JSON 保留字段，页面当前不显示。 | QWeather `issuedTime`。 |
-| `certainty` | 官方 JSON 保留字段，页面当前不显示。 | QWeather `certainty` 规范化；没有则 `unknown`。 |
-| `importance` | 官方 JSON 保留字段，页面当前不显示。 | QWeather 有值就透传；否则从 `severity` 推导：`extreme/severe -> high`、`minor -> low`、其他 `normal`。 |
-| `significance` | 官方 JSON 保留字段，页面当前不显示。 | 仅透传可识别枚举：`advisory` / `watch` / `warning` / `statement` / `emergency` / `unknown`。 |
-| `phenomenon` | 官方 JSON 保留字段，页面当前不显示。 | 彩云将 CAP `categories[]` 映射为 12 个标准类别；QWeather 通过项目维护的事件代码分类表映射为同一套类别，未知值回退本地化 `eventName`。HTML 分支不伪造。 |
-| `token` | 官方 JSON 保留字段，页面当前不显示。 | QWeather `token`，没有则用 `eventType.code` 或 `icon`。 |
-| `name` | 官方 JSON 类型名。 | 固定 `WeatherAlert`。 |
-| `precedence` | 官方 JSON 排序/优先级字段。 | 使用数组下标。 |
+| `description` | `W-C0033-00X`／`W-C0034-001` 的 `headline`，或 `parameter[alert_title]` | 例：`陸上強風特報(橙色燈號)` |
+| `eventName` | `parameter[valueName=alert_title]` | 不含燈號的事件名稱 |
+| `severity` | CAP `severity` 轉小寫 | `Severe` → `severe`；燈號不直接對應 severity |
+| `certainty` | CAP `certainty` | `Likely` → `likely` |
+| `urgency` | CAP `urgency` | `Future` → `future` |
+| `phenomenon` | CAP `category` | 通常為 `Met` |
+| `source` | CAP `senderName` | 例：`中央氣象署` |
+| `areaId` | 縣市戶政代碼 | 由離線對照表 `COUNTIES` 取得 |
+| `areaName` | 請求座標所屬縣市 | 例：`臺北市` |
+| `issuedTime` | CAP `effective`，退回 `onset` | 發布時間 |
+| `effectiveTime` | CAP `onset`，退回 `issuedTime` | 生效時間 |
+| `expireTime` | CAP `expires` | 失效時間 |
+| `guidelines` | CAP `instruction` 逐行切分 | 顯示於防護建議 |
+| `message` | CAP `description`；颱風警報攤平 `section` | 詳細說明 |
+| `token` | CAP `eventCode.value` | 例：`strongWind` |
 
-## 数据来源语义
+## 警特報區域比對
 
-字段语义必须保持分离：
+中央氣象署的 `area[].areaDesc` 可能是縣市（`臺北市`）、縣市加鄉鎮（`新竹縣關西鎮`）或別名（`恆春半島`）。模組以覆蓋精確度評分：
 
-| 语义 | 字段 | 示例 |
-| --- | --- | --- |
-| 签发机构 | `source` | `南京市气象台` |
-| 数据发布/聚合网站链接 | `attributionURL` | `https://www.12379.cn/` 或 QWeather 页面 |
-| 页面数据来源文字兜底 | HTML 提取时的 `data-source__txt` | `国家预警信息发布中心` |
+| 分數 | 條件 |
+| --- | --- |
+| 3 | 縣市＋鄉鎮完全相符 |
+| 2 | 縣市相符，或別名對應到該縣市 |
+| 1 | 同縣市的其他鄉鎮 |
+| 0 | 未涵蓋 |
 
-也就是说，`source` 不是“国家预警信息发布中心”这种网站/平台名，除非无法拿到具体签发机构时才作为兜底。
+同一事件若有多筆不同燈號或不同區域的特報，只保留分數最高的一筆；分數相同時再比 `severity`。
 
-## 本项目转换入口
+## 不提供的欄位
 
-| 入口 | 位置 | 说明 |
-| --- | --- | --- |
-| HTML 页面提取 | `src/class/WeatherAlerts.mjs` 的 `ExtractQWeather()` | 保留旧 QWeather 页面解析；从页面标题提取签发机构，从防御指南提取 `guidelines`。 |
-| API 坐标提取 | `src/class/QWeather.mjs` 的 `WeatherAlert()` | 请求 QWeather `weatheralert/v1/current/{latitude}/{longitude}`，标准化为 `WeatherAlerts.Build()` 可消费结构。 |
-| Apple JSON 构造 | `src/class/WeatherAlerts.mjs` 的 `Build()` | 输出官方 `/api/v1/weatherAlerts` 数组形态。 |
-| v2 FlatBuffer 预警补全 | `src/process/Response*.mjs` 的 `InjectWeatherAlerts()` + `src/class/WeatherAlerts.mjs` 的 `mergeAlerts(to, from)` | 未配置用户 API 令牌时，`InjectWeatherAlerts()` 从集合级 `weatherAlerts.detailsUrl` 的 QWeather `/severe-weather/{identifier}.html?from=AppleWeatherService` 链接提取地区标识，在内部改成 `ids={identifier}&lang={language}&party=qweather` 的 Apple 官方详情页；随后服务端抓取同一 QWeather 灾害预警 HTML，解析并补全 FlatBuffer `alerts[]`。配置了用户自己的 QWeather 或彩云天气 API 令牌时，仍按 `WeatherAlerts.Provider` 使用原 API 补全和坐标详情链路。`mergeAlerts(to, from)` 保持按区域、事件类型、标题、严重度匹配；客户端同时接管 Apple `/api/v1/weatherAlerts` 的地区标识与 API 坐标请求，但不在外部重写 QWeather 页面。 |
-
-## 参考
-
-- 官方页面：`https://weatherkit.apple.com/alertDetails/index.html`
-- 官方 bundle：`https://weatherkit.apple.com/alertDetails/weather_alert.bundle.9559725d9c2934872fd6.js`
-- 官方 API 形态：`https://weatherkit.apple.com/api/v1/weatherAlerts?lang=zh-CN&ids={ids}`
+- `detailsUrl` 會指向 Apple 官方 `alertDetails` 頁面，`party` 為 `CWA`。
+- 中央氣象署沒有逐事件 UUID，`identifier` 由 `資料集:縣市:eventCode:onset` 組合而成。

@@ -3,7 +3,7 @@ import * as WK2 from "weatherkit-schema";
 import database from "../function/database.mjs";
 
 /**
- * 使用 Weather 根模型和产品 codec 配置通用根表处理器。
+ * 使用 Weather 根模型和產品 codec 配置通用根表處理器。
  * Configure the generic root-table processor with the Weather model and product codecs.
  */
 const WeatherKit2 = new FlatBufferRootProcessor({
@@ -314,7 +314,7 @@ function encodeForecastHourly(builder, data) {
 
 function encodeForecastNextHour(builder, data) {
     const metadataOffset = encodeMetadata(builder, data.metadata);
-    // 防御第三方数据：未知枚举传给 FlatBuffer 会静默编码为 CLEAR。
+    // 防禦第三方資料：未知列舉傳給 FlatBuffer 會靜默編碼為 CLEAR。
     // Defend against third-party data: unknown enums would otherwise be silently encoded as CLEAR.
     const conditionOffsets = data.condition
         .filter(condition => [condition.beginCondition, condition.endCondition].every(value => typeof WK2.ConditionType[value] === "number"))

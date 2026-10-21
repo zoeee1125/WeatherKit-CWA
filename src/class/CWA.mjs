@@ -231,7 +231,7 @@ export default class CWA {
     }
 
     /**
-     * 數值解析；氣象署缺值代碼（X、T、-99、-98、-）視為無資料。
+     * 數值解析；氣象署缺值程式碼（X、T、-99、-98、-）視為無資料。
      * Numeric parsing that treats CWA missing-value codes (X, T, -99, -98, -) as absent.
      * @param {unknown} value 原始值 / Raw value.
      * @returns {number | undefined}
@@ -343,10 +343,10 @@ export default class CWA {
     }
 
     /**
-     * 鄉鎮預報發佈時間：每日 05:30、11:30、17:30、23:30。
+     * 鄉鎮預報釋出時間：每日 05:30、11:30、17:30、23:30。
      * Township forecast issue schedule: 05:30, 11:30, 17:30 and 23:30 local time.
      * @param {number} [now] 目前 Unix 秒 / Current Unix seconds.
-     * @returns {number} 最近一次發佈的 Unix 秒 / Unix seconds of the latest issue.
+     * @returns {number} 最近一次釋出的 Unix 秒 / Unix seconds of the latest issue.
      */
     static LatestIssueTime(now = Math.trunc(Date.now() / 1000)) {
         const local = now + 8 * 3600;

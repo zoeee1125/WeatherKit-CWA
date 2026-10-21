@@ -1,7 +1,7 @@
 import { Console } from "@nsnanocat/util";
 
 /**
- * 从来源页面提取的预警记录。
+ * 從來源頁面提取的預警記錄。
  * Alert record extracted from a source page.
  * @typedef {{
  *     areaId?: string,
@@ -31,7 +31,7 @@ import { Console } from "@nsnanocat/util";
  */
 
 /**
- * 从来源页面提取的预警集合。
+ * 從來源頁面提取的預警集合。
  * Alert collection extracted from a source page.
  * @typedef {{
  *     alerts: ExtractedWeatherAlert[],
@@ -41,7 +41,7 @@ import { Console } from "@nsnanocat/util";
  */
 
 /**
- * WeatherAlert 构造上下文。
+ * WeatherAlert 構造上下文。
  * WeatherAlert construction context.
  * @typedef {{
  *     attributionUrl: URL | string,
@@ -86,18 +86,18 @@ import { Console } from "@nsnanocat/util";
  */
 
 /**
- * WeatherKit REST WeatherAlert 集合转换器。
+ * WeatherKit REST WeatherAlert 集合轉換器。
  * WeatherKit REST WeatherAlert collection converter.
  */
 export default class WeatherAlerts {
     /**
-     * 将新的来源预警数组合并到原始 Apple 预警数组。
+     * 將新的來源預警數組合併到原始 Apple 預警陣列。
      * Merge new source alerts into the original Apple alert array.
-     * 来源完整标题优先；其他字段只补空值 / unknown，不改 url，也不新增 alert。
+     * 來源完整標題優先；其他欄位只補空值 / unknown，不改 url，也不新增 alert。
      * Prefer the complete provider title; only fill empty / unknown values for other fields without changing URLs or adding alerts.
-     * @param {array} to - 原始 Apple 预警数组
-     * @param {array} from - 新的来源预警数组
-     * @returns {array} 原始 Apple 预警数组
+     * @param {array} to - 原始 Apple 預警陣列
+     * @param {array} from - 新的來源預警陣列
+     * @returns {array} 原始 Apple 預警陣列
      */
     static mergeAlerts(to = [], from = []) {
         if (!Array.isArray(to) || !Array.isArray(from)) return to;
@@ -308,7 +308,7 @@ export default class WeatherAlerts {
             .trim()
             .toLowerCase()
             .replace(/\s+/g, "")
-            .replace(/预警信号|预警|警报|报告/g, "");
+            .replace(/預警訊號|預警|警報|報告/g, "");
     }
 
     static #WeatherAlertDebugSnapshot(alert, index) {
@@ -347,11 +347,11 @@ export default class WeatherAlerts {
     }
 
     /**
-     * 将提取后的来源记录构造成 WeatherKit REST WeatherAlert 数组。
+     * 將提取後的來源記錄構造成 WeatherKit REST WeatherAlert 陣列。
      * Build the /api/v1/weatherAlerts JSON array consumed by Apple alertDetails.
-     * @param {ExtractedWeatherAlerts} extracted 标准化后的来源数据；alert.source 映射官方页面“签发者”，areaName 映射“受影响区域”。
-     * @param {WeatherAlertContext} context 构造上下文；identifier 用于稳定 UUID/areaId，attributionUrl 用于“查看警报来源”链接。
-     * @returns {WeatherAlert[]} WeatherAlert 数组 / WeatherAlert array.
+     * @param {ExtractedWeatherAlerts} extracted 標準化後的來源資料；alert.source 對映官方頁面“簽發者”，areaName 對映“受影響區域”。
+     * @param {WeatherAlertContext} context 構造上下文；identifier 用於穩定 UUID/areaId，attributionUrl 用於“檢視警報來源”連結。
+     * @returns {WeatherAlert[]} WeatherAlert 陣列 / WeatherAlert array.
      */
     static Build(extracted, context) {
         const contextAreaId = context.identifier.match(/-(\d+)$/)?.[1];
@@ -405,9 +405,9 @@ export default class WeatherAlerts {
     }
 
     /**
-     * 根据 Apple 官方样例中的 importance 分层，从来源严重度推导重要性。
+     * 根據 Apple 官方樣例中的 importance 分層，從來源嚴重度推導重要性。
      * Derive WeatherKit importance from source severity when upstream does not provide it.
-     * @param {string} severity 预警严重度 / Alert severity.
+     * @param {string} severity 預警嚴重度 / Alert severity.
      * @returns {"high" | "normal" | "low"} Apple WeatherAlert importance.
      */
     static #ImportanceFromSeverity(severity) {
@@ -424,10 +424,10 @@ export default class WeatherAlerts {
     }
 
     /**
-     * 将来源防御指南压缩为 Apple 前端能识别的动作 token。
+     * 將來源防禦指南壓縮為 Apple 前端能識別的動作 token。
      * Convert source defense guidance into Apple-recognized action tokens.
-     * @param {string[]} guidelines 防御指南 / Defense guidance.
-     * @returns {string[]} 动作 token / Action tokens.
+     * @param {string[]} guidelines 防禦指南 / Defense guidance.
+     * @returns {string[]} 動作 token / Action tokens.
      */
     static #BuildResponses(guidelines, preferredResponses = []) {
         const responses = WeatherAlerts.#NormalizeResponses(preferredResponses);
@@ -442,10 +442,10 @@ export default class WeatherAlerts {
     }
 
     /**
-     * 标准化动作 token 列表。
+     * 標準化動作 token 列表。
      * Normalize action token list.
-     * @param {string[]} responses 动作 token / Action tokens.
-     * @returns {string[]} 规范化后的动作 token / Normalized action tokens.
+     * @param {string[]} responses 動作 token / Action tokens.
+     * @returns {string[]} 規範化後的動作 token / Normalized action tokens.
      */
     static #NormalizeResponses(responses) {
         const normalized = [];
@@ -457,25 +457,25 @@ export default class WeatherAlerts {
     }
 
     /**
-     * 根据单条防御指南推断 Apple 的动作 token。
+     * 根據單條防禦指南推斷 Apple 的動作 token。
      * Infer an Apple action token from one defense-guidance line.
-     * @param {string} guideline 防御指南 / Defense guidance.
-     * @returns {string | null} 动作 token / Action token.
+     * @param {string} guideline 防禦指南 / Defense guidance.
+     * @returns {string | null} 動作 token / Action token.
      */
     static #ResponseFromGuideline(guideline) {
         const text = String(guideline ?? "").trim().toLowerCase();
         if (!text) return null;
         const compact = text.replace(/\s+/g, "");
 
-        if (/撤离|疏散|转移|离开/.test(text) || compact.includes("evacuat")) return "evacuate";
-        if (/就地|躲避|避难|避险|避风|室内|躲到|进入室内|待在室内/.test(text) || compact.includes("takeshelter") || compact.includes("seekshelter")) return "shelter";
-        if (/执行|实施|预案|计划/.test(text) || compact.includes("execute") || compact.includes("carryout") || compact.includes("implement")) return "execute";
-        if (/准备|防范|防护|备好|做好.*准备/.test(text) || compact.includes("prepare") || compact.includes("preparations")) return "prepare";
-        if (/远离|避免|不要|切勿|勿|别/.test(text) || compact.includes("avoid") || compact.includes("stayaway") || compact.includes("keepaway") || compact.includes("donot") || compact.includes("dont")) return "avoid";
-        if (/密切关注|持续关注|关注|留意|监测|观察|跟踪/.test(text) || compact.includes("monitor") || compact.includes("watch") || compact.includes("followup")) return "monitor";
-        if (/评估|检查/.test(text) || compact.includes("assess") || compact.includes("inspect")) return "assess";
-        if (/解除|恢复正常/.test(text) || compact.includes("allclear")) return "allClear";
-        if (/无需|不需|无须/.test(text) || compact.includes("none")) return "none";
+        if (/撤離|疏散|轉移|離開/.test(text) || compact.includes("evacuat")) return "evacuate";
+        if (/就地|躲避|避難|避險|避風|室內|躲到|進入室內|待在室內/.test(text) || compact.includes("takeshelter") || compact.includes("seekshelter")) return "shelter";
+        if (/執行|實施|預案|計劃/.test(text) || compact.includes("execute") || compact.includes("carryout") || compact.includes("implement")) return "execute";
+        if (/準備|防範|防護|備好|做好.*準備/.test(text) || compact.includes("prepare") || compact.includes("preparations")) return "prepare";
+        if (/遠離|避免|不要|切勿|勿|別/.test(text) || compact.includes("avoid") || compact.includes("stayaway") || compact.includes("keepaway") || compact.includes("donot") || compact.includes("dont")) return "avoid";
+        if (/密切關注|持續關注|關注|留意|監測|觀察|跟蹤/.test(text) || compact.includes("monitor") || compact.includes("watch") || compact.includes("followup")) return "monitor";
+        if (/評估|檢查/.test(text) || compact.includes("assess") || compact.includes("inspect")) return "assess";
+        if (/解除|恢復正常/.test(text) || compact.includes("allclear")) return "allClear";
+        if (/無需|不需|無須/.test(text) || compact.includes("none")) return "none";
         return null;
     }
 
@@ -613,18 +613,18 @@ export default class WeatherAlerts {
     }
 
     /**
-     * 将来源标题规范化为 WeatherAlert 最终标题。
+     * 將來源標題規範化為 WeatherAlert 最終標題。
      * Normalize a provider headline into the final WeatherAlert title.
-     * @param {string} description 预警标题 / Alert title.
-     * @param {string} eventName 本地化事件名称 / Localized event name.
-     * @returns {string} 规范化标题 / Normalized title.
+     * @param {string} description 預警標題 / Alert title.
+     * @param {string} eventName 本地化事件名稱 / Localized event name.
+     * @returns {string} 規範化標題 / Normalized title.
      */
     static #NormalizeWeatherAlertTitle(description, eventName = "") {
         const title = String(description ?? "").trim();
         const fallback = WeatherAlerts.#TrimWeatherAlertTitle(eventName);
         if (!title) return fallback;
 
-        const chinese = title.match(/^.+?(?:发布|更新|变更)\s*[:：]?\s*(.+)$/);
+        const chinese = title.match(/^.+?(?:釋出|更新|變更)\s*[:：]?\s*(.+)$/);
         if (chinese?.[1]) return WeatherAlerts.#TrimWeatherAlertTitle(chinese[1]);
 
         const issued = title.match(/^(.+?)\s+issued\b\s*[:：]?\s*(.+)$/i);
@@ -649,15 +649,15 @@ export default class WeatherAlerts {
             .trim()
             .replace(/\s*[\[【][^\]】]+[\]】]\s*$/u, "")
             .replace(/\s*[。．.]+\s*$/gu, "")
-            .replace(/预警信号$/u, "预警")
-            .replace(/預警信號$/u, "預警");
+            .replace(/預警訊號$/u, "預警")
+            .replace(/預警訊號$/u, "預警");
     }
 
     /**
-     * 为同一预警生成跨运行环境稳定的 UUID。
+     * 為同一預警生成跨執行環境穩定的 UUID。
      * Generate a stable UUID for the same alert across supported runtimes.
-     * @param {string} value UUID 输入 / UUID input.
-     * @returns {string} UUID 字符串 / UUID string.
+     * @param {string} value UUID 輸入 / UUID input.
+     * @returns {string} UUID 字串 / UUID string.
      */
     static #StableUUID(value) {
         const words = [0x811c9dc5, 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35];

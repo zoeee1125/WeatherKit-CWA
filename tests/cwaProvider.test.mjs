@@ -14,7 +14,7 @@ const [{ default: CWA }, { default: providerNameToLogo }, { default: shouldRepla
 ]);
 Console.logLevel = "OFF";
 
-const logoTemplate = "https://raw.githubusercontent.com/NSRingo/WeatherKit/main/images/icon/v2/CWA.png";
+const logoTemplate = "https://raw.githubusercontent.com/zoeee1125/WeatherKit-CWA/main/images/icon/v2/CWA.png";
 
 test("CWA maps weather text to WeatherKit condition codes", () => {
     const cases = [
@@ -161,14 +161,12 @@ test("CWA resolves Taiwan coordinates through the offline township table", () =>
     assert.equal(withoutToken.available, false);
 });
 
-test("CWA replaces Taiwan weather once its provider is selected", () => {
+test("CWA only replaces weather when the provider is selected and the location resolves", () => {
     const settings = database.WeatherKit.Settings;
-    const environment = country => ({ country, cwa: { available: true } });
 
-    assert.equal(shouldReplaceWeather({ ...settings, Weather: { ...settings.Weather, Provider: "CWA" } }, environment("TW")), true);
-    assert.equal(shouldReplaceWeather({ ...settings, Weather: { ...settings.Weather, Provider: "CWA" } }, { country: "TW", cwa: { available: false } }), false);
-    assert.equal(shouldReplaceWeather({ ...settings, Weather: { ...settings.Weather, Replace: ["TW"], Provider: "QWeather" } }, environment("TW")), true);
-    assert.equal(shouldReplaceWeather({ ...settings, Weather: { ...settings.Weather, Replace: [], Provider: "QWeather" } }, environment("TW")), false);
+    assert.equal(shouldReplaceWeather({ ...settings, Weather: { Provider: "CWA" } }, { country: "TW", cwa: { available: true } }), true);
+    assert.equal(shouldReplaceWeather({ ...settings, Weather: { Provider: "CWA" } }, { country: "TW", cwa: { available: false } }), false);
+    assert.equal(shouldReplaceWeather({ ...settings, Weather: { Provider: "WeatherKit" } }, { country: "TW", cwa: { available: true } }), false);
 });
 
 test("CWA ships its token and provider defaults", () => {
@@ -177,5 +175,5 @@ test("CWA ships its token and provider defaults", () => {
     assert.equal(database.WeatherKit.Settings.WeatherAlerts.Provider, "CWA");
     assert.equal(providerNameToLogo("CWA"), logoTemplate);
     assert.equal(providerNameToLogo("中央氣象署"), logoTemplate);
-    assert.equal(providerNameToLogo("中央气象署"), logoTemplate);
+    assert.equal(providerNameToLogo("Apple Weather"), undefined);
 });

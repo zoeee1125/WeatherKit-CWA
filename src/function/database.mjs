@@ -1,17 +1,11 @@
 export default {
     WeatherKit: {
         Settings: {
-            // 只有插件会修改的产品允许被配置关闭；其余 Apple 数据集必须始终透传。
-            DataSets: ["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "forecastNextHour", "weatherAlerts"],
-            Weather: { Replace: ["CN"], Provider: "CWA" },
+            // 只有外掛會修改的產品允許被設定關閉；其餘 Apple 資料集必須始終透傳。
+            DataSets: ["currentWeather", "forecastDaily", "forecastHourly", "weatherAlerts"],
+            Weather: { Provider: "CWA" },
             WeatherAlerts: { Provider: "CWA" },
-            NextHour: { Provider: "ColorfulClouds" },
-            AirQuality: {
-                Current: { Pollutants: { Provider: "ColorfulClouds", Units: { Replace: [], Mode: "Scale" } }, Index: { Replace: ["HJ6332012"], Provider: "Calculate", ForceCNPrimaryPollutants: true } },
-                Comparison: { ReplaceWhenCurrentChange: false, Yesterday: { PollutantsProvider: "QWeather", IndexProvider: "ColorfulCloudsUS" } },
-                Calculate: { Algorithm: "EU_EAQI", AllowOverRange: true },
-            },
-            API: { WAQI: { Token: null }, CWA: { Token: "" }, QWeather: { Token: "bdd98ec1d87747f3a2e8b1741a5af796", Host: "devapi.qweather.com" }, ColorfulClouds: { Token: "Y2FpeXVuX25vdGlmeQ==" } },
+            API: { CWA: { Token: "" } },
         },
         Configs: {
             Availability: {

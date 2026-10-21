@@ -1,12 +1,12 @@
 # weatherkit-schema
 
-Apple WeatherKit 的 FlatBuffers 綁定（table 類別與 enum）。
+Apple WeatherKit 的 FlatBuffers 繫結（table 類別與 enum）。
 
-原本來自私有套件 `@nsringo/weatherkit`，此處改為 repo 內的本地套件，讓建置不再需要 GitHub Packages 權限。
+原本來自私有套件 `@nsringo/weatherkit`，此處改為 repo 內的本地套件，讓建置不再需要 GitHub Packages 許可權。
 
 ## 來源與授權
 
-- 來源：<https://github.com/NSRingo/WeatherKit> 的已發佈 `response.bundle.js`（v3.3.2）
+- 來源：<https://github.com/NSRingo/WeatherKit> 的已釋出 `response.bundle.js`（v3.3.2）
 - 授權：Apache-2.0
 - 內容：27 個 FlatBuffers table 類別、23 個 enum，保留原始壓縮識別碼以確保欄位偏移與列舉值完全一致
 - 匯出：`src/index.mjs` 末端以 `export { ... as Name }` 提供穩定名稱，呼叫端不需理會壓縮識別碼

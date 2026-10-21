@@ -8,7 +8,7 @@ let $response;
     .catch(e => Console.error(e))
     .finally(() => {
         switch (typeof $response) {
-            case "object": // 有构造回复数据，返回构造的回复数据
+            case "object": // 有構造回覆資料，返回構造的回覆資料
                 //Console.debug("finally", `echo $response: ${JSON.stringify($response, null, 2)}`);
                 if ($response.headers?.["Content-Encoding"]) $response.headers["Content-Encoding"] = "identity";
                 if ($response.headers?.["content-encoding"]) $response.headers["content-encoding"] = "identity";
@@ -25,12 +25,12 @@ let $response;
                         break;
                 }
                 break;
-            case "undefined": // 无构造回复数据，发送修改的请求数据
+            case "undefined": // 無構造回覆資料，傳送修改的請求資料
                 //Console.debug("finally", `$request: ${JSON.stringify($request, null, 2)}`);
                 done($request);
                 break;
             default:
-                Console.error(`不合法的 $response 类型: ${typeof $response}`);
+                Console.error(`不合法的 $response 類型: ${typeof $response}`);
                 break;
         }
     });

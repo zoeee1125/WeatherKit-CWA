@@ -1,23 +1,23 @@
 /**
- * Hono 路由上下文类型。
+ * Hono 路由上下文類型。
  * Hono route context type.
  * @typedef {import("hono").Context} HonoContext
  */
 
 /**
- * Hono 请求类型。
+ * Hono 請求類型。
  * Hono request type.
  * @typedef {HonoContext["req"]} HonoRequest
  */
 
 /**
- * Worker 统一头部字典。
+ * Worker 統一頭部字典。
  * Worker normalized header dictionary.
  * @typedef {Record<string, string | string[] | undefined>} WorkerHeaders
  */
 
 /**
- * Worker 内部统一请求对象。
+ * Worker 內部統一請求物件。
  * Worker normalized internal request payload.
  * @typedef {{
  * 	method: string,
@@ -29,7 +29,7 @@
  */
 
 /**
- * Worker 内部统一响应对象。
+ * Worker 內部統一響應物件。
  * Worker normalized internal response payload.
  * @typedef {{
  * 	status?: number,
@@ -41,16 +41,16 @@
  */
 
 /**
- * Hono Worker 运行时适配器。
+ * Hono Worker 執行時介面卡。
  * Hono worker runtime adapter.
  */
 export default class HonoWorkerAdapter {
     /**
-     * 根据 worker 入口域名与回退路径重写目标路由 URL。
+     * 根據 worker 入口域名與回退路徑重寫目標路由 URL。
      * Rewrite upstream target URL based on the worker host and fallback path.
-     * @param {URL} url 当前请求 URL / Current request URL.
-     * @param {string} restPath 回退路由路径 / Fallback route path.
-     * @returns {URL} 重写后的 URL / Routed URL.
+     * @param {URL} url 當前請求 URL / Current request URL.
+     * @param {string} restPath 回退路由路徑 / Fallback route path.
+     * @returns {URL} 重寫後的 URL / Routed URL.
      */
     static routeRewrite(url, restPath = "") {
         switch (true) {
@@ -80,10 +80,10 @@ export default class HonoWorkerAdapter {
     }
 
     /**
-     * 清理并标准化转发请求头。
+     * 清理並標準化轉發請求頭。
      * Normalize headers before forwarding upstream.
-     * @param {WorkerHeaders} headers 原始请求头 / Raw request headers.
-     * @returns {WorkerHeaders} 标准化后的请求头 / Normalized request headers.
+     * @param {WorkerHeaders} headers 原始請求頭 / Raw request headers.
+     * @returns {WorkerHeaders} 標準化後的請求頭 / Normalized request headers.
      */
     static normalizeRequestHeaders(headers = {}) {
         const requestHeaderBlacklist = new Set(["connection", "content-length", "host", "x-forwarded-proto", "x-real-ip"]);
@@ -97,10 +97,10 @@ export default class HonoWorkerAdapter {
     }
 
     /**
-     * 从 Hono request 构造内部统一请求对象。
+     * 從 Hono request 構造內部統一請求物件。
      * Build the normalized internal request payload from Hono request.
-     * @param {HonoRequest} req Hono 请求 / Hono request.
-     * @returns {Promise<WorkerRequest>} 标准化请求对象 / Normalized request object.
+     * @param {HonoRequest} req Hono 請求 / Hono request.
+     * @returns {Promise<WorkerRequest>} 標準化請求物件 / Normalized request object.
      */
     static async buildRequest(req) {
         const url = HonoWorkerAdapter.routeRewrite(new URL(req.url), req.param("rest"));
@@ -130,10 +130,10 @@ export default class HonoWorkerAdapter {
     }
 
     /**
-     * 清理回包头，避免与 Cloudflare Workers 回写行为冲突。
+     * 清理回包頭，避免與 Cloudflare Workers 回寫行為衝突。
      * Clean response headers to avoid conflicts with Cloudflare Workers.
-     * @param {WorkerHeaders} headers 原始响应头 / Raw response headers.
-     * @returns {WorkerHeaders} 清理后的响应头 / Cleaned response headers.
+     * @param {WorkerHeaders} headers 原始響應頭 / Raw response headers.
+     * @returns {WorkerHeaders} 清理後的響應頭 / Cleaned response headers.
      */
     static cleanupResponseHeaders(headers = {}) {
         const normalizedHeaders = { ...headers };
@@ -147,11 +147,11 @@ export default class HonoWorkerAdapter {
     }
 
     /**
-     * 将内部统一响应对象写回 Hono response。
+     * 將內部統一響應物件寫回 Hono response。
      * Write the normalized internal response payload back to Hono.
      * @param {HonoContext} c Hono 上下文 / Hono context.
-     * @param {WorkerResponse} $response 内部响应对象 / Internal response object.
-     * @returns {Response} Hono 响应 / Hono response.
+     * @param {WorkerResponse} $response 內部響應物件 / Internal response object.
+     * @returns {Response} Hono 響應 / Hono response.
      */
     static writeResponse(c, $response = {}) {
         const headers = HonoWorkerAdapter.cleanupResponseHeaders($response.headers ?? {});
@@ -167,10 +167,10 @@ export default class HonoWorkerAdapter {
     }
 
     /**
-     * 从 WorkerRequest 提取参数。
+     * 從 WorkerRequest 提取參數。
      * Extract arguments from WorkerRequest.
-     * @param {WorkerRequest} $request 标准化请求对象 / Normalized request object.
-     * @returns {WorkerRequest} 标准化请求对象 / Normalized request object.
+     * @param {WorkerRequest} $request 標準化請求物件 / Normalized request object.
+     * @returns {WorkerRequest} 標準化請求物件 / Normalized request object.
      */
     static buildArgument($request = {}) {
         if ($request.headers.$argument) {

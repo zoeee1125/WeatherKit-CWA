@@ -102,23 +102,30 @@ export async function Response($request, $response) {
                                     dataSets.map(async dataSet => {
                                         switch (dataSet) {
                                             case "airQuality": {
-                                                body.airQuality = await InjectAirQuality(body.airQuality, Settings, enviroments);
+                                                const injectedAirQuality = await InjectAirQuality(body.airQuality, Settings, enviroments);
+                                                if (injectedAirQuality !== undefined) body.airQuality = injectedAirQuality;
                                                 break;
                                             }
                                             case "currentWeather": {
-                                                body.currentWeather = await InjectCurrentWeather(body.currentWeather, Settings, enviroments);
+                                                const injectedCurrentWeather = await InjectCurrentWeather(body.currentWeather, Settings, enviroments);
+                                                if (injectedCurrentWeather !== undefined) body.currentWeather = injectedCurrentWeather;
                                                 break;
                                             }
                                             case "forecastDaily": {
-                                                body.forecastDaily = await InjectForecastDaily(body.forecastDaily, Settings, enviroments);
+                                                const injectedForecastDaily = await InjectForecastDaily(body.forecastDaily, Settings, enviroments);
+                                                if (injectedForecastDaily !== undefined) body.forecastDaily = injectedForecastDaily;
                                                 break;
                                             }
                                             case "forecastHourly": {
-                                                body.forecastHourly = await InjectForecastHourly(body.forecastHourly, Settings, enviroments);
+                                                const injectedForecastHourly = await InjectForecastHourly(body.forecastHourly, Settings, enviroments);
+                                                if (injectedForecastHourly !== undefined) body.forecastHourly = injectedForecastHourly;
                                                 break;
                                             }
                                             case "weatherAlerts": {
-                                                body.weatherAlerts = await InjectWeatherAlerts(body.weatherAlerts, Settings, enviroments);
+                                                const injectedAlerts = await InjectWeatherAlerts(body.weatherAlerts, Settings, enviroments);
+                                                // 沒有原始 slot 時不要建立 key，否則編碼器會收到非物件而失敗。
+                                                // Do not create the key when the slot is absent; the encoder rejects non-objects.
+                                                if (injectedAlerts !== undefined) body.weatherAlerts = injectedAlerts;
                                                 break;
                                             }
                                             default:

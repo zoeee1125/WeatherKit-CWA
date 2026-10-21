@@ -23,7 +23,7 @@
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
-        "url": "https://github.com/NSRingo/WeatherKit.git"
+        "url": "https://github.com/zoeee1125/WeatherKit-CWA.git"
     },
     "directories": {
         "example": "example"
@@ -69,11 +69,11 @@
     "dependencies": {
         "@nsnanocat/util": "^2.7.4",
         "@nsnanocat/flatbuffer-root": "^1.0.0",
-        "@nsringo/weatherkit": "^1.1.2",
         "fetch-cookie": "^3.2.0",
         "flatbuffers": "^24.12.23",
         "hono": "^4.12.31",
-        "node-fetch": "^3.3.2"
+        "node-fetch": "^3.3.2",
+        "weatherkit-schema": "file:packages/weatherkit-schema"
     },
     "overrides": {
         "@iringo/surge2egern": {

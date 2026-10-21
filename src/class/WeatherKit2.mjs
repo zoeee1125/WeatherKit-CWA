@@ -1,5 +1,5 @@
 import { FlatBufferRootProcessor } from "@nsnanocat/flatbuffer-root";
-import * as WK2 from "@nsringo/weatherkit";
+import * as WK2 from "weatherkit-schema";
 import database from "../function/database.mjs";
 
 /**

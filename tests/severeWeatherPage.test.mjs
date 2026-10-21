@@ -787,11 +787,11 @@ test("Pages routes WeatherAlert requests through Hono before fetching QWeather",
     }
 });
 
-test("Pages routes coordinate WeatherAlert identifiers through QWeather API for the default QWeatherWeb provider", async () => {
+test("Pages keeps the default CWA provider and returns an Apple-compatible array for non-Taiwan coordinates", async () => {
     const originalFetch = globalThis.fetch;
-    let sourceRequest;
-    globalThis.fetch = async (input, init) => {
-        sourceRequest = { url: new URL(input), init };
+    let fetchCount = 0;
+    globalThis.fetch = async () => {
+        fetchCount++;
         return new Response(JSON.stringify(qWeatherAlertAPI), { headers: { "Content-Type": "application/json" } });
     };
 
@@ -809,10 +809,9 @@ test("Pages routes coordinate WeatherAlert identifiers through QWeather API for 
             const body = await response.json();
 
             assert.equal(response.status, 200, pathname);
-            assert.equal(sourceRequest.url.toString(), "https://devapi.qweather.com/weatheralert/v1/current/32.115/118.814?lang=zh-hans", pathname);
-            assert.equal(body[0].description, "高温橙色预警", pathname);
-            assert.equal(body[0].source, "南京市气象台", pathname);
+            assert.deepEqual(body, [], pathname);
         }
+        assert.equal(fetchCount, 0, "CWA must not call upstream for non-Taiwan coordinates");
     } finally {
         globalThis.fetch = originalFetch;
     }

@@ -12,7 +12,6 @@ permissions:
 jobs:
   build:
     uses: ./.github/workflows/build.yml
-    secrets: inherit
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -26,7 +25,5 @@ jobs:
         with:
           body_path: CHANGELOG.md
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: |
-            rulesets/*
-            dist/*
+          files: dist/*
           make_latest: "true"

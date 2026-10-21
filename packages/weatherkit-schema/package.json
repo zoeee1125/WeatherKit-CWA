@@ -1,0 +1,12 @@
+{
+    "name": "weatherkit-schema",
+    "version": "1.1.2",
+    "private": true,
+    "description": "Apple WeatherKit FlatBuffers bindings vendored for the CWA fork. Extracted from the published iRingo WeatherKit bundle (Apache-2.0).",
+    "type": "module",
+    "main": "./src/index.mjs",
+    "exports": {
+        ".": "./src/index.mjs"
+    },
+    "license": "Apache-2.0"
+}

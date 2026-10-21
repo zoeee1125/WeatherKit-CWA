@@ -16,3 +16,4 @@
   * 补充数据集交集、用户设置过滤、FlatBuffer 根槽映射和 QWeather 接口路径的回归测试。
   * 补充中央气象署数据源的天气现象、风向、时间解析、月相、时间序列、警报覆盖率与设置项回归测试。
   * 将默认天气数据源与天气预警数据源调整为中央气象署（台湾）；非台湾地区或未填写授权码时仍保留 Apple 原数据。
+  * 将 WeatherKit FlatBuffers 绑定从私有 `@nsringo/weatherkit` 改为仓库内的 `packages/weatherkit-schema`，并让模块与工作流指向本仓库，构建不再需要 GitHub Packages 访问权限或任何密钥。

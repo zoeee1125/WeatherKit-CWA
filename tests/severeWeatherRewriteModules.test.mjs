@@ -267,7 +267,7 @@ test("WeatherAlert provider settings expose web and user API choices", async () 
         readFile(new URL("../template/boxjs.settings.json", import.meta.url), "utf8"),
     ]);
 
-    assert.match(full, /key: "WeatherAlerts\.Provider"[\s\S]*defaultValue: "QWeatherWeb"[\s\S]*key: "WeatherKit"[\s\S]*key: "QWeatherWeb"[\s\S]*key: "QWeather"[\s\S]*key: "ColorfulClouds"/);
+    assert.match(full, /key: "WeatherAlerts\.Provider"[\s\S]*defaultValue: "CWA"[\s\S]*key: "WeatherKit"[\s\S]*key: "QWeatherWeb"[\s\S]*key: "QWeather"[\s\S]*key: "ColorfulClouds"[\s\S]*key: "CWA"/);
     assert.match(full, /export const weatherAlerts = \[weatherAlertsProvider\]/);
     assert.match(full, /export const airQuality = \[airQualityCurrentPollutantsProvider\]/);
     assert.match(full, /export const dataSets: Arg\[\] = \[[\s\S]*defaultValue: \["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "forecastNextHour", "weatherAlerts"\]/);
@@ -294,9 +294,9 @@ test("WeatherAlert provider settings expose web and user API choices", async () 
     assert.match(release, /args: \[\.\.\.dataSets,[^\]]*\.\.\.weatherAlerts,[^\]]*\.\.\.airQuality/);
     assert.match(dev, /import \{[^}]*airQualityFull[^}]*dataSetsFull[^}]*weatherFull[^}]*\} from "\.\/arguments-builder\.full\.config"/);
     assert.match(dev, /args: \[\.\.\.dataSetsFull, \.\.\.weatherFull, \.\.\.weatherAlerts, \.\.\.nextHourFull, \.\.\.airQualityFull, \.\.\.calculateFull, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
-    assert.match(database, /WeatherAlerts: \{ Provider: "QWeatherWeb" \}/);
-    assert.match(types, /WeatherAlerts\?: \{[\s\S]*Provider\?: "WeatherKit" \| "QWeatherWeb" \| "QWeather" \| "ColorfulClouds"/);
-    assert.match(boxjs, /@iRingo\.WeatherKit\.Settings\.WeatherAlerts\.Provider[\s\S]*"val":\s*"QWeatherWeb"[\s\S]*"key":\s*"WeatherKit"/);
+    assert.match(database, /WeatherAlerts: \{ Provider: "CWA" \}/);
+    assert.match(types, /WeatherAlerts\?: \{[\s\S]*Provider\?: "WeatherKit" \| "QWeatherWeb" \| "QWeather" \| "ColorfulClouds" \| "CWA"/);
+    assert.match(boxjs, /@iRingo\.WeatherKit\.Settings\.WeatherAlerts\.Provider[\s\S]*"val":\s*"CWA"[\s\S]*"key":\s*"WeatherKit"/);
     const boxjsSettings = JSON.parse(boxjs);
     const dataSetsSetting = boxjsSettings.find(({ id }) => id === "@iRingo.WeatherKit.Settings.DataSets");
     const weatherReplaceSetting = boxjsSettings.find(({ id }) => id === "@iRingo.WeatherKit.Settings.Weather.Replace");

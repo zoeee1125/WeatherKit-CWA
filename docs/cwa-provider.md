@@ -40,3 +40,15 @@
 - 月相由本地朔望月周期推算，可能有约半天误差。
 - 风速会从 CWA 的 m/s 换算为 WeatherKit 的 km/h。
 - 授权码请勿提交到仓库或公开分享；本仓库的默认值为空字符串。
+
+## 建置
+
+本仓库已把 Apple WeatherKit 的 FlatBuffers 绑定内嵌为本地套件 `packages/weatherkit-schema`，所有依赖都来自公开 npm，因此不需要任何 GitHub Packages 凭证：
+
+```bash
+npm install
+npm run build          # 产生 dist/request.bundle.js 与 dist/response.bundle.js
+npm run build:args     # 产生 dist/iRingo.WeatherKit.sgmodule 等模组
+```
+
+模组内的 `script-path` 指向本仓库的 Release 资源，因此请透过推送 `vX.Y.Z` 标签让 GitHub Actions 建立 Release，再安装该 Release 内的 `iRingo.WeatherKit.sgmodule`。

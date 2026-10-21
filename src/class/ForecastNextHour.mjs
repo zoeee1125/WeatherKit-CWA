@@ -1,5 +1,5 @@
 import { Console } from "@nsnanocat/util";
-import * as WK2 from "@nsringo/weatherkit";
+import * as WK2 from "weatherkit-schema";
 
 export default class ForecastNextHour {
     Name = "ForecastNextHour";

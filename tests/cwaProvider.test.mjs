@@ -14,7 +14,7 @@ const [{ default: CWA }, { default: providerNameToLogo }, { default: shouldRepla
 ]);
 Console.logLevel = "OFF";
 
-const logoTemplate = "https://raw.githubusercontent.com/zoeee1125/WeatherKit-CWA/main/images/icon/v2/CWA.png";
+const logoTemplate = "https://zoeee1125.github.io/WeatherKit-CWA/assets/icon/v2/CWA.png";
 
 test("CWA maps weather text to WeatherKit condition codes", () => {
     const cases = [

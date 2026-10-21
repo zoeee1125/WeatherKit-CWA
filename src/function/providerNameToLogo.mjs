@@ -21,7 +21,7 @@ export default function providerNameToLogo(providerName, version = "v2") {
     switch (normalizedProviderName) {
         case "CWA":
         case "中央氣象署":
-            providerLogo = `https://raw.githubusercontent.com/zoeee1125/WeatherKit-CWA/main/images/icon/${version}/CWA.png`;
+            providerLogo = `https://zoeee1125.github.io/WeatherKit-CWA/assets/icon/${version}/CWA.png`;
             break;
         default:
             break;

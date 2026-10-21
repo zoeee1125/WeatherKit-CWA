@@ -1,6 +1,5 @@
 import { Console, fetch } from "@nsnanocat/util";
 import { COUNTIES, STATIONS, TOWNSHIPS } from "../function/cwaLocations.mjs";
-import providerNameToLogo from "../function/providerNameToLogo.mjs";
 
 /**
  * 中央氣象署開放資料平台資料來源。
@@ -498,7 +497,6 @@ export default class CWA {
             language: "zh-TW",
             latitude: this.latitude,
             longitude: this.longitude,
-            providerLogo: providerNameToLogo(this.providerName),
             providerName: this.providerName,
             readTime: timeStamp,
             reportedTime: reportedTime ?? timeStamp,
@@ -869,8 +867,7 @@ export default class CWA {
         const failed = {
             metadata: {
                 attributionUrl: "https://www.cwa.gov.tw/V8/C/P/Warning.html",
-                providerLogo: providerNameToLogo(this.providerName),
-                providerName: this.providerName,
+                    providerName: this.providerName,
                 temporarilyUnavailable: true,
             },
             detailsUrl: this.AlertDetailsURL(),

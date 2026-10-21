@@ -181,7 +181,7 @@ async function InjectCurrentWeather(currentWeather, Settings, enviroments) {
     if (newCurrentWeather?.metadata) {
         newCurrentWeather.metadata = { ...currentWeather?.metadata, ...newCurrentWeather.metadata };
         currentWeather = { ...currentWeather, ...newCurrentWeather };
-        currentWeather.metadata.providerLogo ||= providerNameToLogo(currentWeather.metadata.providerName);
+        currentWeather.metadata.providerLogo = providerNameToLogo(currentWeather.metadata.providerName);
     }
     Console.info("✅ InjectCurrentWeather");
     return currentWeather;
@@ -219,7 +219,7 @@ async function InjectForecastDaily(forecastDaily, Settings, enviroments) {
     if (newForecastDaily?.metadata) {
         forecastDaily.metadata = { ...forecastDaily?.metadata, ...newForecastDaily.metadata };
         forecastDaily.days = Weather.mergeForecast(forecastDaily?.days, newForecastDaily?.days);
-        forecastDaily.metadata.providerLogo ||= providerNameToLogo(forecastDaily.metadata.providerName);
+        forecastDaily.metadata.providerLogo = providerNameToLogo(forecastDaily.metadata.providerName);
     }
     Console.info("✅ InjectForecastDaily");
     return forecastDaily;
@@ -257,7 +257,7 @@ async function InjectForecastHourly(forecastHourly, Settings, enviroments) {
     if (newForecastHourly?.metadata) {
         forecastHourly.metadata = { ...forecastHourly?.metadata, ...newForecastHourly.metadata };
         forecastHourly.hours = Weather.mergeForecast(forecastHourly?.hours, newForecastHourly?.hours);
-        forecastHourly.metadata.providerLogo ||= providerNameToLogo(forecastHourly.metadata.providerName);
+        forecastHourly.metadata.providerLogo = providerNameToLogo(forecastHourly.metadata.providerName);
     }
     Console.info("✅ InjectForecastHourly");
     return forecastHourly;
@@ -292,7 +292,7 @@ async function InjectWeatherAlerts(weatherAlerts, Settings, enviroments) {
         weatherAlerts.metadata = { ...weatherAlerts?.metadata, ...newWeatherAlerts.metadata };
         weatherAlerts.detailsUrl = newWeatherAlerts.detailsUrl ?? weatherAlerts.detailsUrl;
         weatherAlerts.alerts = WeatherAlerts.mergeAlerts(weatherAlerts?.alerts, newWeatherAlerts?.alerts);
-        weatherAlerts.metadata.providerLogo ||= providerNameToLogo(weatherAlerts.metadata.providerName);
+        weatherAlerts.metadata.providerLogo = providerNameToLogo(weatherAlerts.metadata.providerName);
     }
     Console.info("✅ InjectWeatherAlerts");
     return weatherAlerts;

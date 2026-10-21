@@ -14,7 +14,6 @@ const [{ default: CWA }, { default: providerNameToLogo }, { default: shouldRepla
 ]);
 Console.logLevel = "OFF";
 
-const logoTemplate = "https://zoeee1125.github.io/WeatherKit-CWA/assets/icon/v2/CWA.png";
 
 test("CWA maps weather text to WeatherKit condition codes", () => {
     const cases = [
@@ -173,7 +172,9 @@ test("CWA ships its token and provider defaults", () => {
     assert.equal(database.WeatherKit.Settings.API.CWA.Token, "");
     assert.equal(database.WeatherKit.Settings.Weather.Provider, "CWA");
     assert.equal(database.WeatherKit.Settings.WeatherAlerts.Provider, "CWA");
-    assert.equal(providerNameToLogo("CWA"), logoTemplate);
-    assert.equal(providerNameToLogo("中央氣象署"), logoTemplate);
+    // 天氣 App 只渲染 Apple CDN 上的圖示，外部網址會變成空白方塊，因此一律不提供。
+    // The Weather app only renders icons on Apple's CDN, so no logo is provided at all.
+    assert.equal(providerNameToLogo("CWA"), undefined);
+    assert.equal(providerNameToLogo("中央氣象署"), undefined);
     assert.equal(providerNameToLogo("Apple Weather"), undefined);
 });

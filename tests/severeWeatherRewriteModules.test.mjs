@@ -202,9 +202,10 @@ test("Dev builds use dev templates, bundles, and output names", async () => {
     }
     for (const template of [surge, loon, quantumultX, stash]) {
         assert.doesNotMatch(template, /releases\/download/);
-        assert.doesNotMatch(template, /airQualityScale/);
+        // 空氣品質標準也要在 dev 環境註冊，否則無法驗證本地 AQI 定義。
+        assert.ok(template.includes("api.v1.airQualityScale.request"));
     }
-    assert.match(loon, /api\.v1\.weather\.request/);
+    assert.match(loon, /api\.v2\.weather\.request/);
 });
 
 test("production templates hook the v2 weather request so country overrides apply", async () => {
@@ -325,4 +326,25 @@ test("CWA-only settings expose the provider, datasets, token, and Traditional Ch
     // 設定介面不得殘留簡體中文。
     // The settings UI must not keep Simplified Chinese copy.
     assert.doesNotMatch(boxjs, /[数气预调选换围权单浓质码标记]/);
+});
+
+test("production templates hook the air-quality scale so the local TW.AQI definition is served", async () => {
+    // Request.mjs 會在本地回應 /api/v1/airQualityScale/；沒有 request hook 就永遠不會執行，
+    // 天氣 App 只能向 Apple 取得不存在的 TW.AQI 定義，空氣品質卡片也就不會渲染。
+    // Request.mjs answers /api/v1/airQualityScale/ locally; without a request hook the Weather app
+    // only ever asks Apple for a TW.AQI definition that does not exist.
+    for (const filename of ["surge.handlebars", "loon.handlebars", "quantumultx.handlebars", "stash.handlebars"]) {
+        const content = await readFile(new URL(`../template/${filename}`, import.meta.url), "utf8");
+        assert.ok(content.includes("api.v1.airQualityScale.request"), `${filename} 缺少空氣品質標準 request hook`);
+        assert.ok(content.includes("api\\/v1\\/airQualityScale\\/"), `${filename} 缺少空氣品質標準的 URL 規則`);
+    }
+
+    const stash = await readFile(new URL("../template/stash.handlebars", import.meta.url), "utf8");
+    assert.ok(/WeatherKit\.api\.v1\.airQualityScale\.request:\s*\n\s*url: [^\n]+request\.bundle\.js/.test(stash), "Stash 缺少空氣品質標準的 script provider");
+
+    // 產生出的模組也要帶到這個 hook。
+    for (const filename of ["iRingo.WeatherKit.sgmodule", "iRingo.WeatherKit.lpx", "iRingo.WeatherKit.stoverride"]) {
+        const content = await readFile(new URL(`../dist/${filename}`, import.meta.url), "utf8");
+        assert.ok(content.includes("api.v1.airQualityScale.request"), `${filename} 缺少空氣品質標準 request hook`);
+    }
 });

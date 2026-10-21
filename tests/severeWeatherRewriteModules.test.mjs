@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const modulesDirectory = new URL("../modules/", import.meta.url);
@@ -227,6 +227,31 @@ test("production templates hook the v2 weather request so country overrides appl
         const content = await readFile(new URL(`../dist/${filename}`, import.meta.url), "utf8");
         assert.ok(content.includes("v2.weather.request"), filename);
     }
+});
+
+test("script arguments use raw expansion so Surge receives the module arguments", async () => {
+    // 單大括號會做 HTML 轉義，argument 會變成 DataSets&#x3D;&quot;...&quot;，
+    // Surge 的 {{{變數}}} 佔位符就不會被替換，腳本等於拿不到任何模組參數。
+    // Double braces HTML-escape the value, so Surge's {{{name}}} placeholders never resolve and
+    // the script receives no usable module argument at all.
+    const templates = (await readdir(new URL("../template/", import.meta.url))).filter(name => name.endsWith(".handlebars"));
+    for (const filename of templates) {
+        const content = await readFile(new URL(`../template/${filename}`, import.meta.url), "utf8");
+        assert.ok(!content.includes("argument={{scriptParams}}"), `${filename} 使用了會被轉義的 {{scriptParams}}`);
+    }
+
+    // 建置產物裡，請求腳本的 argument 必須是未轉義的形式。
+    const module = await readFile(new URL("../dist/iRingo.WeatherKit.sgmodule", import.meta.url), "utf8");
+    const requestLine = module.split("\n").find(line => line.includes("api.v2.weather.request"));
+    assert.ok(requestLine, "找不到 v2 天氣請求腳本");
+    assert.ok(requestLine.includes('argument=DataSets="{{{DataSets}}}"'), `請求腳本參數未正確展開: ${requestLine?.slice(-120)}`);
+    assert.ok(!requestLine.includes("&#x3D;"), "請求腳本參數被 HTML 轉義");
+
+    // Loon 的參數格式與 Surge 不同（[值,值,...]），只要確認沒有被 HTML 轉義即可。
+    const loon = await readFile(new URL("../dist/iRingo.WeatherKit.lpx", import.meta.url), "utf8");
+    const loonLine = loon.split("\n").find(line => line.includes("api.v2.weather.request"));
+    assert.ok(loonLine?.includes("argument=[{"), `Loon 請求腳本參數格式錯誤: ${loonLine?.slice(-120)}`);
+    assert.ok(!loonLine?.includes("&#x3D;"), "Loon 請求腳本參數被 HTML 轉義");
 });
 
 test("Handler generation keeps Loon local and enables Egern", async () => {

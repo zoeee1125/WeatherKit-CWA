@@ -1,3 +1,13 @@
+## v3.5.7
+
+### 🛠️ Bug Fixes
+  * `forecastNextHour` 的 `summary` 最後一段改用 `endTime: 0`，與 Apple 原生一致。Apple 對日本座標回的原始 `summary`／`condition` 都用 0 表示「一直到預報結束」，我們原本寫入實際結束時刻，等於憑空多出一個不存在的邊界。`condition` 早就這樣寫，這次把 `summary` 補齊。
+  * 警特報的日誌文案分得出「Apple 沒有這個資料槽」與「Apple 回了槽但內容是空的」。原本兩種情況都印 `No Apple weatherAlerts slot`，日本這種有槽但空的狀況會被誤讀成資料漏接。
+
+### 🔄 Other Changes
+  * 新增 2 個迴歸測試：`summary` 末段的開放式結束時間（含整段無雨的情形），以及「濕分鐘強度不低於下雨門檻」這個不變量。
+  * 確認微量降水分級（`NO`，0～0.08 毫米／小時）在目前的產生流程裡不會被用到：強度是「剩餘雨量 ÷ 濕分鐘」，濕分鐘不可能多於剩餘分鐘，因此必然不低於 `RainThreshold`。已補上註解說明，避免日後誤以為 Apple 把 0.0969 判成 `CLEAR` 是因為門檻設錯。
+
 ## v3.5.6
 
 ### 🛠️ Bug Fixes

@@ -31,7 +31,18 @@ export default class ForecastNextHour {
     static Version = "2.0.0";
     static Author = "iRingo";
 
-    /** 降水強度換算用的分級（毫米／小時）。 / Intensity bands in millimetres per hour. */
+    /**
+     * 降水強度換算用的分級（毫米／小時）。
+     * Intensity bands in millimetres per hour.
+     *
+     * 濕分鐘的強度是「剩餘雨量 ÷ 濕分鐘」，而濕分鐘不會多於剩餘分鐘，所以強度必然不低於
+     * `RainThreshold`；`NO` 這一段在目前的產生流程裡用不到，只有直接呼叫 `Condition()`／
+     * `Perceived()` 時才會落到這裡。
+     * A wet minute's intensity is "rain left ÷ wet minutes", and the wet minutes can never
+     * outnumber the minutes left, so the intensity is always at least `RainThreshold`. The `NO`
+     * band is therefore unreachable from the generated series; only direct calls to `Condition()`
+     * or `Perceived()` can land in it.
+     */
     static #Bands = {
         NO: [0, 0.08],
         LIGHT: [0.08, 3.44],
@@ -261,9 +272,10 @@ export default class ForecastNextHour {
      * Merge the minute series into consecutive precipitation runs.
      *
      * 段落以降水類型（有雨／無雨）切分，強度取段落內最大值；天氣 App 靠這些段落畫出
-     * 「幾分鐘後開始下雨」的時間軸。
+     * 「幾分鐘後開始下雨」的時間軸。最後一段的 `endTime` 一律為 0（開放式）。
      * Runs are split by precipitation type (wet or dry) and keep the maximum intensity inside the
-     * run; the Weather app draws its "rain in N minutes" timeline from them.
+     * run; the Weather app draws its "rain in N minutes" timeline from them. The last run always
+     * carries an `endTime` of zero, meaning it is open-ended.
      *
      * @param {object[]} minutes 逐分鐘資料 / Minute entries.
      * @returns {object[]} 降水段落 / Precipitation runs.
@@ -291,6 +303,12 @@ export default class ForecastNextHour {
                 clear: minute.clear,
             });
         }
+        // 最後一段是開放式的，`endTime` 要寫 0：Apple 原生的 `summary` 與 `condition` 都是這樣
+        // 表示「一直到預報結束」。寫成實際結束時刻，前端會多出一個不存在的邊界。
+        // The last run is open-ended and must carry an `endTime` of zero: Apple's native `summary`
+        // and `condition` both use 0 for "until the end of the forecast". A real end time there
+        // introduces a boundary the forecast does not have.
+        if (runs.length) runs.at(-1).endTime = 0;
         return runs;
     }
 

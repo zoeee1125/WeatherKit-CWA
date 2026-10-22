@@ -378,7 +378,13 @@ async function InjectWeatherAlerts(weatherAlerts, Settings, enviroments) {
             providerName: newWeatherAlerts.metadata.providerName,
         });
         if (!collection) {
-            Console.warn("InjectWeatherAlerts", "No Apple weatherAlerts slot and no active warning");
+            // Apple 對日本等地是「有槽但內容為空」，對臺灣是「根本沒有槽」；兩者都保留原樣，
+            // 但日誌要分得出來，否則每次都會像是漏接了資料。
+            // Apple returns an empty slot in some regions (Japan) and no slot at all in others
+            // (Taiwan). Both are kept as-is, but the log must tell them apart so a missing slot
+            // does not look like a dropped payload.
+            const kept = Array.isArray(weatherAlerts?.alerts) ? "kept Apple's empty slot" : "no slot to keep";
+            Console.warn("InjectWeatherAlerts", `No active warning; ${kept}`);
             Console.info("✅ InjectWeatherAlerts");
             return weatherAlerts;
         }

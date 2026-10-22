@@ -70,7 +70,8 @@ test("降水段落依無雨／有雨切分，並保留段落內最大強度", ()
         runs.map(run => ({ condition: run.condition, startTime: run.startTime, endTime: run.endTime, clear: run.clear })),
         [
             { condition: "CLEAR", startTime: Start, endTime: Start + Lead, clear: true },
-            { condition: "RAIN", startTime: Start + Lead, endTime: Start + ForecastNextHour.Horizon * 60, clear: false },
+            // 最後一段是開放式的，`endTime` 為 0，與 Apple 原生的 `summary` 一致。
+            { condition: "RAIN", startTime: Start + Lead, endTime: 0, clear: false },
         ],
     );
     assert.equal(runs[1].precipitationIntensity, 3.6);
@@ -200,7 +201,7 @@ test("逐分鐘序列在窗口結束後轉為無雨", () => {
         summary.map(run => [run.condition, run.startTime, run.endTime]),
         [
             ["RAIN", now, window.rainEnd],
-            ["CLEAR", window.rainEnd, window.forecastStart + ForecastNextHour.Horizon * 60],
+            ["CLEAR", window.rainEnd, 0],
         ],
     );
     // 雨已經在下、且會在窗口結束時停：時間軸只該有 STOP，不該憑空生出 START。
@@ -233,4 +234,45 @@ test("起雨時間超過窗口終點時視為現在就在下雨，不會塞進�
     assert.equal(window.wetMinutes, ForecastNextHour.Horizon);
     // 整小時的 0.6 毫米平均落在 60 分鐘上，就是 0.6 毫米／小時，不是 36 毫米／小時的暴雨。
     assert.equal(window.intensity, 0.6);
+});
+
+test("濕分鐘的強度不會低於下雨門檻，微量分級永遠用不到", () => {
+    // Apple 的原生樣本出現過強度 0.0969 卻判 CLEAR 的分鐘；我們的序列不會有這種值，
+    // 因為強度是「剩餘雨量 ÷ 濕分鐘」，而濕分鐘不可能多於剩餘分鐘，
+    // 所以強度必然 ≥ `RainThreshold`。這條測試把這個不變量固定下來。
+    // Apple's native sample contains a minute with an intensity of 0.0969 marked CLEAR. Our series
+    // can never produce such a value: the intensity is "rain left ÷ wet minutes", and the wet
+    // minutes can never outnumber the minutes left, so the intensity is always at least
+    // `RainThreshold`. This test pins that invariant.
+    let minimum = Number.POSITIVE_INFINITY;
+    for (let observationAgo = 0; observationAgo <= 55; observationAgo += 5) {
+        for (let lead = 0; lead <= ForecastNextHour.Horizon; lead += 5) {
+            for (const future of [0.5, 0.6, 1, 3.6, 10]) {
+                const window = ForecastNextHour.Window({ now: Start, observationTime: Start - observationAgo * 60, future, onset: Start + lead * 60 });
+                if (window.stale || window.intensity <= 0) continue;
+                minimum = Math.min(minimum, window.intensity);
+            }
+        }
+    }
+    assert.equal(minimum, ForecastNextHour.RainThreshold);
+});
+
+test("最後一段降水段落的結束時間為 0，與 Apple 原生 summary 一致", () => {
+    // Apple 對日本座標回的原生 summary 是
+    // [{ condition: "CLEAR", startTime: 1792669560, endTime: 0, ... }]，
+    // 最後一段用 0 表示「一直到預報結束」，不是實際結束時刻。
+    // Apple's native summary for a Japanese coordinate ends the final run with `endTime: 0`,
+    // meaning "until the end of the forecast" rather than a concrete time.
+    const runs = ForecastNextHour.Runs(ForecastNextHour.Minutes({ startTime: Start, onset: Start + Lead, intensity: 3.6 }));
+    assert.equal(runs.at(-1).endTime, 0);
+
+    // 只有最後一段是開放式，前面各段仍保留真實邊界。
+    // Only the final run is open-ended; earlier runs keep their real boundaries.
+    assert.equal(runs[0].endTime, Start + Lead);
+
+    // 整段無雨時也一樣，而且 `condition` 與 `summary` 兩邊都必須是 0。
+    // The same holds for an all-dry series, and both `condition` and `summary` must agree.
+    const slot = Slot({ onset: undefined });
+    assert.equal(slot.summary.at(-1).endTime, 0);
+    assert.equal(slot.condition.at(-1).endTime, 0);
 });

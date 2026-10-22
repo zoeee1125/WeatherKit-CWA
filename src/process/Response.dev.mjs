@@ -326,7 +326,8 @@ async function InjectWeatherAlerts(weatherAlerts, Settings, enviroments) {
             providerName: newWeatherAlerts.metadata.providerName,
         });
         if (!collection) {
-            Console.warn("InjectWeatherAlerts", "No Apple weatherAlerts slot and no active warning");
+            const kept = Array.isArray(weatherAlerts?.alerts) ? "kept Apple's empty slot" : "no slot to keep";
+            Console.warn("InjectWeatherAlerts", `No active warning; ${kept}`);
             Console.info("✅ InjectWeatherAlerts");
             return weatherAlerts;
         }

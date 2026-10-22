@@ -292,6 +292,23 @@ async function InjectForecastHourly(forecastHourly, Settings, enviroments) {
  */
 async function InjectForecastNextHour(forecastNextHour, Settings, enviroments) {
     Console.info("☑️ InjectForecastNextHour");
+    // 支援地區（日本、美國等）會回傳真正的逐分鐘資料。把 Apple 的原生結構記錄下來，
+    // 才有辦法比對 `condition` 的時間軸語意，判斷我們自行推算的起雨時間是否合理。
+    // Supported regions return a real minute series. Log Apple's native structure so the timeline
+    // semantics of `condition` can be compared against the onset we derive ourselves.
+    if (forecastNextHour) {
+        Console.debug(
+            "InjectForecastNextHour",
+            `apple: ${JSON.stringify({
+                forecastStart: forecastNextHour?.forecastStart,
+                forecastEnd: forecastNextHour?.forecastEnd,
+                minutes: Array.isArray(forecastNextHour?.minutes) ? forecastNextHour.minutes.length : 0,
+                sampleMinutes: Array.isArray(forecastNextHour?.minutes) ? forecastNextHour.minutes.slice(0, 3) : [],
+                summary: forecastNextHour?.summary,
+                condition: forecastNextHour?.condition,
+            })}`,
+        );
+    }
     // Apple 對台灣不會回傳 forecastNextHour 區塊，此時直接建立新的資料槽。
     // 少數情況下會回一個沒有逐分鐘資料的空槽，同樣視為沒有資料，否則中央氣象署的預報
     // 永遠補不進去，天氣 App 也就沒有起雨時間可以排定通知。

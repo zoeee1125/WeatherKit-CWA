@@ -134,6 +134,7 @@ export default class ForecastNextHour {
         }
         const now = Math.trunc(Date.now() / 1000);
         const forecastStart = now - (now % 60);
+        const observationTime = ForecastNextHour.ToUnixSeconds(time);
         const willRain = future >= ForecastNextHour.RainThreshold;
         // 過去一小時已經有明顯雨量時視為「正在下雨」，不再製造起雨轉折，
         // 否則天氣 App 會對一場已經在下、使用者早就知道的雨再通知一次。
@@ -153,39 +154,92 @@ export default class ForecastNextHour {
             rain: willRain,
             ongoing,
         });
-        const lead = onset === undefined ? 0 : Math.min(ForecastNextHour.Horizon - 1, Math.max(0, Math.round((onset - forecastStart) / 60)));
-        const wetMinutes = ForecastNextHour.Horizon - lead;
-        // 整小時累積雨量換算成「有雨分鐘」的降雨強度（毫米／小時）。
-        // Convert the hourly total into an intensity over the wet minutes (millimetres per hour).
-        const intensity = willRain ? Math.round((future * 60 * 100) / wetMinutes) / 100 : 0;
-        const minutes = ForecastNextHour.Minutes({ startTime: forecastStart, onset, intensity, chance: ForecastNextHour.RainChance });
+        // QPESUMS 的預報窗口是「基準時刻 + 60 分鐘」，不是「現在 + 60 分鐘」。
+        // The QPESUMS window is base time + 60 minutes, not now + 60 minutes.
+        const window = ForecastNextHour.Window({ now, observationTime, future, onset: willRain ? onset : undefined });
+        if (window.stale) {
+            Console.warn("ForecastNextHour.NextHour", `QPESUMS 資料已超過預報窗口 / QPESUMS data is older than its window: ${time}`);
+            Console.info("✅ ForecastNextHour.NextHour", "Stale data");
+            return undefined;
+        }
+        const minutes = ForecastNextHour.Minutes({
+            startTime: window.forecastStart,
+            onset: window.wetStart,
+            endTime: window.rainEnd,
+            intensity: window.intensity,
+            chance: ForecastNextHour.RainChance,
+        });
         const summary = ForecastNextHour.Runs(minutes);
         const condition = ForecastNextHour.Conditions(summary);
         const result = {
-            metadata: this.#Metadata({ reportedTime: ForecastNextHour.ToUnixSeconds(time) ?? now }),
+            metadata: this.#Metadata({ reportedTime: observationTime ?? now }),
             condition,
             summary,
             minutes,
-            forecastStart,
-            forecastEnd: forecastStart + ForecastNextHour.Horizon * 60,
+            forecastStart: window.forecastStart,
+            forecastEnd: window.forecastStart + ForecastNextHour.Horizon * 60,
         };
-        Console.info("✅ ForecastNextHour.NextHour", `rain: ${willRain}`, `ongoing: ${ongoing}`, `onset: ${onset ?? "n/a"}`, `intensity: ${intensity} mm/h`, `time: ${time ?? "n/a"}`);
+        Console.info("✅ ForecastNextHour.NextHour", `rain: ${willRain}`, `ongoing: ${ongoing}`, `onset: ${onset ?? "n/a"}`, `wet: ${window.wetStart ?? "n/a"}~${window.rainEnd}`, `intensity: ${window.intensity} mm/h`, `time: ${time ?? "n/a"}`);
         Console.debug("ForecastNextHour.NextHour", `condition: ${JSON.stringify(condition)}`, `summary: ${JSON.stringify(summary)}`);
         return result;
+    }
+
+    /**
+     * 依 QPESUMS 的基準時刻推算預報窗口與降雨強度。
+     * Derive the forecast window and rain intensity from the QPESUMS base time.
+     *
+     * QPESUMS 的「未來 1 小時」是從**資料基準時刻**起算的一小時，不是從請求時刻起算。
+     * 資料送達時基準時刻可能已經過了二十幾分鐘，若仍以「現在 + 60 分鐘」當窗口，就會把
+     * 整小時的累積雨量攤到一段比實際更長的時間上，還多畫出資料根本不涵蓋的雨。
+     * QPESUMS' "next hour" starts at the **data base time**, not at request time. The base time
+     * can already be twenty-odd minutes old on arrival, so treating "now + 60 minutes" as the
+     * window spreads the hourly total over a longer span than the data covers and paints rain
+     * into minutes the source says nothing about.
+     *
+     * @param {{now: number, observationTime?: number, future?: number, onset?: number}} options 選項 / Options.
+     * @returns {{forecastStart: number, rainEnd: number, wetStart?: number, wetMinutes: number, intensity: number, stale: boolean}}
+     */
+    static Window({ now, observationTime, future = 0, onset } = {}) {
+        const forecastStart = now - (now % 60);
+        const horizonEnd = forecastStart + ForecastNextHour.Horizon * 60;
+        // 沒有基準時刻就退回「現在起算」，至少不會比原本的行為更差。
+        // Without a base time, fall back to "starting now" so behaviour is no worse than before.
+        const windowEnd = observationTime === undefined ? horizonEnd : observationTime + 60 * 60;
+        if (windowEnd <= forecastStart) return { forecastStart, rainEnd: forecastStart, wetStart: undefined, wetMinutes: 0, intensity: 0, stale: true };
+
+        const rainEnd = Math.min(windowEnd, horizonEnd);
+        if (onset === undefined) return { forecastStart, rainEnd, wetStart: undefined, wetMinutes: 0, intensity: 0, stale: false };
+
+        // 起雨時間可能落在窗口外：早於現在就從現在開始下；晚於窗口結束時，資料已經沒有餘裕
+        // 再表達一次「起雨」，只能視為現在就在下，否則會把所有雨量塞進最後一分鐘。
+        // The onset can fall outside the window: earlier than now starts raining immediately, and
+        // past the window end there is no room left to express an onset, so the rain counts as
+        // already falling — otherwise the whole total is squeezed into the last minute.
+        const wetStart = onset >= rainEnd ? forecastStart : Math.min(Math.max(forecastStart, onset), Math.max(forecastStart, rainEnd - 60));
+        const wetMinutes = Math.max(1, Math.round((rainEnd - wetStart) / 60));
+        // `future` 是「基準時刻起一小時」的累積量，窗口已經走掉的部分不該再算一次：
+        // 先按剩餘時間取比例，再攤到有雨的分鐘上。
+        // `future` accumulates from the base time over one hour, so the part of the window that has
+        // already elapsed must not be counted twice: take the share left, then spread it over the
+        // wet minutes.
+        const remaining = (future * (rainEnd - forecastStart)) / (ForecastNextHour.Horizon * 60);
+        return { forecastStart, rainEnd, wetStart, wetMinutes, intensity: Math.round((remaining * 60 * 100) / wetMinutes) / 100, stale: false };
     }
 
     /**
      * 建立逐分鐘降水序列。
      * Build the per-minute precipitation series.
      *
-     * @param {{startTime?: number, onset?: number, intensity?: number, chance?: number}} [options] 選項 / Options.
+     * @param {{startTime?: number, onset?: number, endTime?: number, intensity?: number, chance?: number}} [options] 選項 / Options.
      * @returns {object[]} 逐分鐘資料，附帶 `condition`、`summaryCondition` 與 `clear` 供後續彙整 / Minute entries carrying `condition`, `summaryCondition` and `clear` for aggregation.
      */
-    static Minutes({ startTime = 0, onset, intensity = 0, chance = ForecastNextHour.RainChance } = {}) {
+    static Minutes({ startTime = 0, onset, endTime = startTime + ForecastNextHour.Horizon * 60, intensity = 0, chance = ForecastNextHour.RainChance } = {}) {
         const minutes = [];
         for (let index = 0; index < ForecastNextHour.Horizon; index++) {
             const minuteStart = startTime + index * 60;
-            const wet = onset !== undefined && minuteStart >= onset;
+            // 只有落在 [起雨時間, 窗口結束) 之間的分鐘才下雨：QPESUMS 的累積雨量只涵蓋到窗口結束。
+            // Only minutes inside [onset, window end) are wet; the QPESUMS total stops at the window end.
+            const wet = onset !== undefined && minuteStart >= onset && minuteStart < endTime;
             const value = wet ? intensity : 0;
             minutes.push({
                 startTime: minuteStart,

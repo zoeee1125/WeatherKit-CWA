@@ -187,7 +187,7 @@ test("air-quality fragment round-trips through the FlatBuffer codec", async () =
     // 注入的標準識別碼帶修訂版號，用來讓天氣 App 重新抓取定義（見 AirQualityScale.Revision）。
     // The injected scale carries the revision so the Weather app refetches the definition.
     assert.equal(decoded.airQuality.scale, AirQualityScale.RequestName);
-    assert.equal(decoded.airQuality.scale, "TW.AQI.2");
+    assert.equal(decoded.airQuality.scale, `TW.AQI.${AirQualityScale.Revision}`);
     assert.equal(decoded.airQuality.index, 72);
     assert.equal(decoded.airQuality.categoryIndex, 2);
     assert.equal(decoded.airQuality.pollutants.length, 8);

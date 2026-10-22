@@ -155,3 +155,82 @@ test("降雨判定維持「即將降雨」與「雨勢變大」兩種", () => {
     assert.equal(ForecastNextHour.Message("STARTING", 1.2, 0).title, "1 小時內會下雨");
     assert.equal(ForecastNextHour.Message("INTENSIFYING", 3.4, 0.3).title, "雨勢會變大");
 });
+
+/**
+ * QPESUMS 的「未來 1 小時」從資料基準時刻起算，不是從請求時刻起算。
+ * QPESUMS' "next hour" starts at the data base time, not at request time.
+ */
+test("預報窗口以 QPESUMS 基準時刻為準，強度不重複計算已過的雨", () => {
+    // 模擬 19:04 請求、資料基準時刻 18:40：窗口只剩 36 分鐘。
+    // Mimic a 19:04 request against an 18:40 base time: only 36 minutes remain.
+    const now = Start + 24 * 60;
+    const window = ForecastNextHour.Window({ now, observationTime: Start, future: 0.6, onset: now - 18 * 60 });
+
+    assert.equal(window.stale, false);
+    assert.equal(window.forecastStart, now);
+    assert.equal(window.rainEnd, Start + 60 * 60, "窗口終點是基準時刻 + 60 分鐘");
+    assert.equal(window.wetStart, now, "已過的起雨時間要夾到現在");
+    assert.equal(window.wetMinutes, 36);
+    // 0.6 毫米是整小時的總量，已經下掉的 24 分鐘不該再攤進剩下的 36 分鐘：
+    // 剩下的比例是 36/60，攤到 36 分鐘上就是原始時雨量 0.6 毫米／小時。
+    assert.equal(window.intensity, 0.6, "強度回到時雨量，不因窗口變短而放大");
+});
+
+test("起雨時間在未來時，強度按剩餘分鐘計算", () => {
+    const window = ForecastNextHour.Window({ now: Start, observationTime: Start, future: 0.6, onset: Start + Lead });
+
+    assert.equal(window.rainEnd, Start + 60 * 60);
+    assert.equal(window.wetStart, Start + Lead);
+    assert.equal(window.wetMinutes, 50);
+    assert.equal(window.intensity, 0.72);
+});
+
+test("逐分鐘序列在窗口結束後轉為無雨", () => {
+    const now = Start + 24 * 60;
+    const window = ForecastNextHour.Window({ now, observationTime: Start, future: 0.6, onset: now - 18 * 60 });
+    const minutes = ForecastNextHour.Minutes({ startTime: window.forecastStart, onset: window.wetStart, endTime: window.rainEnd, intensity: window.intensity });
+    const wet = minutes.filter(minute => !minute.clear);
+
+    assert.equal(wet.length, 36);
+    assert.equal(wet[0].startTime, now);
+    assert.equal(wet.at(-1).startTime, window.rainEnd - 60);
+
+    const summary = ForecastNextHour.Runs(minutes);
+    assert.deepEqual(
+        summary.map(run => [run.condition, run.startTime, run.endTime]),
+        [
+            ["RAIN", now, window.rainEnd],
+            ["CLEAR", window.rainEnd, window.forecastStart + ForecastNextHour.Horizon * 60],
+        ],
+    );
+    // 雨已經在下、且會在窗口結束時停：時間軸只該有 STOP，不該憑空生出 START。
+    // Rain is already falling and stops at the window end: only STOP belongs on the timeline.
+    assert.deepEqual(
+        ForecastNextHour.Conditions(summary).map(condition => [condition.forecastToken, condition.parameters]),
+        [
+            ["STOP", [{ date: window.rainEnd, type: "FIRST_AT" }]],
+            ["CLEAR", []],
+        ],
+    );
+});
+
+test("資料超過預報窗口就不再使用", () => {
+    const window = ForecastNextHour.Window({ now: Start, observationTime: Start - 70 * 60, future: 0.6, onset: Start });
+    assert.equal(window.stale, true);
+    assert.equal(window.intensity, 0);
+});
+
+test("沒有基準時刻時退回現在起算", () => {
+    const window = ForecastNextHour.Window({ now: Start, observationTime: undefined, future: 3.6, onset: Start + Lead });
+    assert.equal(window.stale, false);
+    assert.equal(window.rainEnd, Start + ForecastNextHour.Horizon * 60);
+    assert.equal(window.intensity, (3.6 * 60) / 50);
+});
+
+test("起雨時間超過窗口終點時視為現在就在下雨，不會塞進最後一分鐘", () => {
+    const window = ForecastNextHour.Window({ now: Start, observationTime: Start, future: 0.6, onset: Start + ForecastNextHour.Horizon * 60 });
+    assert.equal(window.wetStart, Start);
+    assert.equal(window.wetMinutes, ForecastNextHour.Horizon);
+    // 整小時的 0.6 毫米平均落在 60 分鐘上，就是 0.6 毫米／小時，不是 36 毫米／小時的暴雨。
+    assert.equal(window.intensity, 0.6);
+});

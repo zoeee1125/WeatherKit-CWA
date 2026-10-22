@@ -31,7 +31,7 @@ export default class AirQualityScale {
      * The Weather app re-requests the scale with the response's `version` appended, so a new
      * revision means a new URL, which bypasses the app's and the HTTP cache's stale copy.
      */
-    static Revision = 2;
+    static Revision = 3;
 
     /**
      * 注入到氣象資料中的標準識別碼（含修訂版號）。
@@ -64,7 +64,7 @@ export default class AirQualityScale {
         Language: {
             en: "en-US",
             "en-us": "en-US",
-            "zh": "zh-Hant-TW",
+            zh: "zh-Hant-TW",
             "zh-tw": "zh-Hant-TW",
             "zh-hant": "zh-Hant-TW",
             "zh-hant-tw": "zh-Hant-TW",
@@ -91,14 +91,19 @@ export default class AirQualityScale {
                             { categoryNumber: 5, range: [201, 300], color: "#800080", categoryName: "非常不健康", glyph: "", recommendation: "所有族群應避免戶外活動。" },
                             { categoryNumber: 6, range: [301, 500], color: "#7E0023", categoryName: "危害", glyph: "", recommendation: "應留在室內並關閉門窗。" },
                         ],
+                        // location 用的是量表數值本身，不是 0～1 的比例：天氣 App 會拿 AQI 直接
+                        // 在漸變上取色，寫成比例的話所有色標會擠在量表開頭，整條漸變塌成一個顏色。
+                        // `location` is a value on the scale, not a 0–1 fraction: the app samples the
+                        // gradient with the raw AQI, so fractions collapse every stop into the start.
                         gradient: {
                             stops: [
                                 { location: 0, color: "#00FF00" },
-                                { location: 0.2, color: "#FFFF00" },
-                                { location: 0.4, color: "#FF7E00" },
-                                { location: 0.6, color: "#FF0000" },
-                                { location: 0.8, color: "#800080" },
-                                { location: 1, color: "#7E0023" },
+                                { location: 50, color: "#00FF00" },
+                                { location: 100, color: "#FFFF00" },
+                                { location: 150, color: "#FF7E00" },
+                                { location: 200, color: "#FF0000" },
+                                { location: 300, color: "#800080" },
+                                { location: 500, color: "#7E0023" },
                             ],
                         },
                     },
@@ -123,14 +128,19 @@ export default class AirQualityScale {
                             { categoryNumber: 5, range: [201, 300], color: "#800080", categoryName: "Very Unhealthy", glyph: "", recommendation: "Everyone should avoid outdoor activity." },
                             { categoryNumber: 6, range: [301, 500], color: "#7E0023", categoryName: "Hazardous", glyph: "", recommendation: "Stay indoors and keep windows closed." },
                         ],
+                        // location 用的是量表數值本身，不是 0～1 的比例：天氣 App 會拿 AQI 直接
+                        // 在漸變上取色，寫成比例的話所有色標會擠在量表開頭，整條漸變塌成一個顏色。
+                        // `location` is a value on the scale, not a 0–1 fraction: the app samples the
+                        // gradient with the raw AQI, so fractions collapse every stop into the start.
                         gradient: {
                             stops: [
                                 { location: 0, color: "#00FF00" },
-                                { location: 0.2, color: "#FFFF00" },
-                                { location: 0.4, color: "#FF7E00" },
-                                { location: 0.6, color: "#FF0000" },
-                                { location: 0.8, color: "#800080" },
-                                { location: 1, color: "#7E0023" },
+                                { location: 50, color: "#00FF00" },
+                                { location: 100, color: "#FFFF00" },
+                                { location: 150, color: "#FF7E00" },
+                                { location: 200, color: "#FF0000" },
+                                { location: 300, color: "#800080" },
+                                { location: 500, color: "#7E0023" },
                             ],
                         },
                     },

@@ -50,7 +50,7 @@ http:
 cron:
   script:
     - name: WeatherKit.rainAlert.cron
-      cron: '0 */30 * * *'
+      cron: '*/30 * * * *'
       timeout: 30
       argument: '{ "LogLevel": "INFO", "Storage": "Argument" }'
 script-providers:

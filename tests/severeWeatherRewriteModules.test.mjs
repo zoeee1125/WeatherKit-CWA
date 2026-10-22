@@ -356,19 +356,19 @@ test("production templates schedule the rain alert on all platforms", async () =
     // The rain alert runs from a scheduled script; without a schedule entry it never fires.
     const surge = await readFile(new URL("../template/surge.handlebars", import.meta.url), "utf8");
     assert.ok(surge.includes("WeatherKit.rainAlert.cron"), "Surge 缺少排程腳本");
-    assert.match(surge, /type=cron, cronexp="0 \*\/30 \* \* \*"/, "Surge 排程表達式");
+    assert.match(surge, /type=cron, cronexp="\*\/30 \* \* \* \*"/, "Surge 排程表達式");
     assert.ok(surge.includes("wake-system=1"), "Surge 需要 wake-system 才不會漏觸發");
     assert.ok(surge.includes("notify.bundle.js"), "Surge 排程腳本路徑");
 
     const loon = await readFile(new URL("../template/loon.handlebars", import.meta.url), "utf8");
-    assert.match(loon, /^cron "0 \*\/30 \* \* \*" script-path=.*notify\.bundle\.js.*enable=true/m, "Loon 排程腳本");
+    assert.match(loon, /^cron "\*\/30 \* \* \* \*" script-path=.*notify\.bundle\.js.*enable=true/m, "Loon 排程腳本");
 
     const quantumultX = await readFile(new URL("../template/quantumultx.handlebars", import.meta.url), "utf8");
     assert.ok(quantumultX.includes("[task_local]"), "Quantumult X 缺少 task_local 區段");
-    assert.match(quantumultX, /^0 \*\/30 \* \* \* .*notify\.bundle\.js.*enabled=true/m, "Quantumult X 排程腳本");
+    assert.match(quantumultX, /^\*\/30 \* \* \* \* .*notify\.bundle\.js.*enabled=true/m, "Quantumult X 排程腳本");
 
     const stash = await readFile(new URL("../template/stash.handlebars", import.meta.url), "utf8");
-    assert.match(stash, /^cron:\n  script:\n    - name: WeatherKit\.rainAlert\.cron\n      cron: '0 \*\/30 \* \* \*'/m, "Stash 排程腳本");
+    assert.match(stash, /^cron:\n  script:\n    - name: WeatherKit\.rainAlert\.cron\n      cron: '\*\/30 \* \* \* \*'/m, "Stash 排程腳本");
     assert.match(stash, /WeatherKit\.rainAlert\.cron:\n    url: [^\n]+notify\.bundle\.js/, "Stash 缺少 notify 的 script provider");
 
     // 產生出的模組也要帶到排程條目。

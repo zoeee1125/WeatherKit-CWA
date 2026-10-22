@@ -1,4 +1,5 @@
 import { Console, Storage, notification } from "@nsnanocat/util";
+import CWA from "../class/CWA.mjs";
 import ForecastNextHour from "../class/ForecastNextHour.mjs";
 import database from "../function/database.mjs";
 import setENV from "../function/setENV.mjs";
@@ -30,11 +31,11 @@ export async function Notify() {
             Console.info("✅ Notify");
             return;
         }
-        // 座標超過兩小時就當作過期，避免拿舊位置發送通知。
-        // Coordinates older than two hours are treated as stale.
+        // 座標超過十二小時就當作過期，避免拿舊位置發送通知。
+        // Coordinates older than twelve hours are treated as stale.
         const updatedAt = Number(location?.updatedAt) || 0;
-        if (updatedAt && Date.now() - updatedAt > 2 * 60 * 60 * 1000) {
-            Console.warn("Notify", "座標資料已過期 / Stale coordinates");
+        if (updatedAt && Date.now() - updatedAt > 12 * 60 * 60 * 1000) {
+            Console.warn("Notify", "座標資料已過期 (超過 12 小時) / Stale coordinates (over 12 hours)");
             Console.info("✅ Notify");
             return;
         }
@@ -55,9 +56,11 @@ export async function Notify() {
         const millimetres = Math.round(future * 10) / 10;
         const previous = Math.round((past ?? 0) * 10) / 10;
         const { title, body } = ForecastNextHour.Message(reason, millimetres, previous);
-        notification(title, location?.name ?? "", body, { sound: true });
+        const cwa = new CWA({ latitude, longitude, language: "zh-Hant-TW" });
+        const placeName = cwa?.location ? `${cwa.location.county}${cwa.location.township}` : (location?.name ?? "");
+        notification(title, placeName, body, { sound: true });
         Storage.setItem("@iRingo.WeatherKit.RainAlert", String(Date.now()));
-        Console.info("✅ Notify", `已通知 / Notified: ${reason}`, `${millimetres} mm`);
+        Console.info("✅ Notify", `已通知 / Notified: ${reason}`, `${millimetres} mm`, `place: ${placeName}`);
     } catch (error) {
         Console.error("Notify", error?.stack ?? error?.message ?? String(error));
     }

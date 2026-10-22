@@ -276,3 +276,45 @@ test("最後一段降水段落的結束時間為 0，與 Apple 原生 summary �
     assert.equal(slot.summary.at(-1).endTime, 0);
     assert.equal(slot.condition.at(-1).endTime, 0);
 });
+
+test("Apple 原生的 STOP 事件與我們的輸出逐欄位一致", () => {
+    // 英國座標 20:12 的真實響應：前 40 分鐘有雨，之後轉晴，總長 78 分鐘。
+    //   condition[0] = { beginCondition: "POSSIBLE_DRIZZLE", endCondition: "POSSIBLE_DRIZZLE",
+    //                    forecastToken: "STOP", parameters: [{ date: 1792673520, type: "FIRST_AT" }],
+    //                    startTime: 1792671120, endTime: 1792673520 }
+    //   condition[1] = { beginCondition: "CLEAR", endCondition: "CLEAR", forecastToken: "CLEAR",
+    //                    parameters: [], startTime: 1792673520, endTime: 0 }
+    // 停雨時間放在 FIRST_AT，而且這一段的 `endTime` 就是停雨時間，不是 0。
+    // A real response for a UK coordinate: 40 wet minutes then clear. The stop time lives in
+    // FIRST_AT and the segment's own `endTime` is that same time, not zero.
+    const start = 1_792_671_120;
+    const stop = 1_792_673_520;
+    const minutes = ForecastNextHour.Minutes({ startTime: start, onset: start, endTime: stop, intensity: 0.142038956284523 });
+    const summary = ForecastNextHour.Runs(minutes);
+    const conditions = ForecastNextHour.Conditions(summary);
+
+    // 同一筆響應的 summary 是兩段：有雨到停雨時間，之後的晴天用 0 收尾。
+    // The matching summary has two runs: rain until the stop time, then an open-ended clear run.
+    assert.deepEqual(
+        summary.map(run => [run.condition, run.startTime, run.endTime]),
+        [
+            ["RAIN", start, stop],
+            ["CLEAR", stop, 0],
+        ],
+    );
+
+    assert.equal(conditions.length, 2);
+    assert.equal(conditions[0].forecastToken, "STOP");
+    assert.deepEqual(conditions[0].parameters, [{ date: stop, type: "FIRST_AT" }]);
+    assert.equal(conditions[0].startTime, start);
+    assert.equal(conditions[0].endTime, stop);
+    assert.equal(conditions[0].beginCondition, conditions[0].endCondition);
+    assert.deepEqual(conditions[1], {
+        beginCondition: "CLEAR",
+        endCondition: "CLEAR",
+        forecastToken: "CLEAR",
+        parameters: [],
+        startTime: stop,
+        endTime: 0,
+    });
+});

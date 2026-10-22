@@ -33,8 +33,19 @@ export default class ForecastNextHour {
     /** 判定「會下雨」的門檻（毫米／小時）。 / Threshold for "will rain" in millimetres per hour. */
     static RainThreshold = 0.5;
 
+    /**
+     * 判定「雨勢明顯增強」的倍數。
+     * Ratio above which the coming hour counts as a significant increase.
+     *
+     * 過去一小時只是飄雨（例如 0.25 毫米）時，未來一小時若有 3.4 毫米，
+     * 對使用者仍是「要變天了」，不該因為「已經在下雨」而略過。
+     * A trace amount in the past hour (say 0.25 mm) followed by 3.4 mm in the coming hour is
+     * still news to the user, so it must not be skipped as "already raining".
+     */
+    static IntensityRatio = 2;
+
     /** 通知的冷卻時間（秒）。 / Notification cooldown in seconds. */
-    static AlertCooldown = 3 * 60 * 60;
+    static AlertCooldown = 90 * 60;
 
     /** 預報有效期（秒）；iOS 會隱藏過期的下一小時資料。 / Validity window in seconds. */
     static ExpirationInterval = 10 * 60;
@@ -137,19 +148,75 @@ export default class ForecastNextHour {
     }
 
     /**
-     * 判斷是否該發出「即將降雨」通知。
-     * Decide whether a "rain is coming" notification should be sent.
+     * 判斷是否該發出降雨通知。
+     * Decide whether a rainfall notification should be sent.
      *
-     * 條件為「目前沒下雨」且「未來一小時會下雨」，避免雨已經下了一陣子還在提醒。
-     * The condition is "not raining now" plus "will rain within the hour", so an ongoing shower
-     * does not keep triggering the alert.
+     * 三種情況：
+     * - 過去一小時幾乎沒雨、未來一小時會下雨 → `STARTING`（即將降雨）
+     * - 過去一小時有雨但雨勢明顯變大 → `INTENSIFYING`（雨勢將增強）
+     * - 其餘（沒雨，或雨勢持平／變小）→ 不通知
+     * Three outcomes:
+     * - barely any rain in the past hour and rain expected → `STARTING`
+     * - some rain in the past hour but the coming hour is much wetter → `INTENSIFYING`
+     * - anything else (dry, steady, or easing off) → no notification
      *
-     * @returns {Promise<{alert: boolean, future: number | undefined, past: number | undefined, time: string | undefined}>}
+     * @returns {Promise<{alert: boolean, reason: "STARTING" | "INTENSIFYING" | "NONE", future: number | undefined, past: number | undefined, time: string | undefined}>}
      */
     async Alert() {
         const { future, past, time } = await this.#Grid();
-        const alert = future !== undefined && future >= ForecastNextHour.RainThreshold && (past ?? 0) < QPESUMS.MinimumRain;
-        return { alert, future, past, time };
+        const reason = ForecastNextHour.Decide(future, past);
+        return { alert: reason !== "NONE", reason, future, past, time };
+    }
+
+    /**
+     * 依過去與未來一小時的雨量決定要不要通知。
+     * Decide from the past-hour and next-hour rainfall whether to notify.
+     *
+     * @param {number | undefined} future 未來一小時預估雨量（毫米）/ Expected rain in the coming hour, in millimetres.
+     * @param {number | undefined} past 過去一小時雨量（毫米）/ Rain in the past hour, in millimetres.
+     * @returns {"STARTING" | "INTENSIFYING" | "NONE"}
+     */
+    static Decide(future, past) {
+        // 未來一小時沒有明顯雨量就沒有提醒的必要。
+        // Without meaningful rain in the coming hour there is nothing to report.
+        if (future === undefined || future < ForecastNextHour.RainThreshold) return "NONE";
+        const previous = past ?? 0;
+        // 過去一小時幾乎沒雨：這是「即將開始下雨」。
+        // Almost no rain in the past hour: rain is about to start.
+        if (previous < QPESUMS.MinimumRain) return "STARTING";
+        // 已經有雨但未來明顯更多：這是「雨勢將增強」。
+        // Some rain already, but the coming hour is much wetter: rain will intensify.
+        if (future >= previous * ForecastNextHour.IntensityRatio) return "INTENSIFYING";
+        return "NONE";
+    }
+
+    /**
+     * 產生通知文案。
+     * Build the notification copy.
+     *
+     * 標題前置使用者最需要分辨的資訊（多久內、會不會變大），本文只放雨量。
+     * The title leads with what the user needs to distinguish (how soon, or whether it will get
+     * heavier); the body carries only the amounts.
+     *
+     * @param {"STARTING" | "INTENSIFYING" | "NONE"} reason 通知原因 / Why the alert fires.
+     * @param {number} future 未來一小時預估雨量（毫米）/ Expected rain in the coming hour, in millimetres.
+     * @param {number} past 過去一小時雨量（毫米）/ Rain in the past hour, in millimetres.
+     * @returns {{title: string, body: string}}
+     */
+    static Message(reason, future, past) {
+        switch (reason) {
+            case "INTENSIFYING":
+                return {
+                    title: "雨勢會變大",
+                    body: `預估雨量 ${future} 毫米，過去 1 小時 ${past} 毫米。`,
+                };
+            case "STARTING":
+            default:
+                return {
+                    title: "1 小時內會下雨",
+                    body: `預估雨量 ${future} 毫米，出門記得帶傘。`,
+                };
+        }
     }
 
     /**

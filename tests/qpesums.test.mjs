@@ -80,3 +80,51 @@ test("ISO 時間換算成 Unix 秒", () => {
     assert.equal(ForecastNextHour.ToUnixSeconds(""), undefined);
     assert.equal(ForecastNextHour.ToUnixSeconds("不是時間"), undefined);
 });
+
+/**
+ * 降雨通知的判定規則。
+ * Rainfall alert decision rules.
+ */
+test("過去一小時只有微量飄雨時，仍要提醒即將變大的雨勢", () => {
+    // 使用者回報的實際情境：未來 3.4 毫米、過去 0.25 毫米。
+    // 0.25 毫米只是飄雨，不該被當成「已經在下雨」而略過。
+    // The reported case: 3.4 mm coming, 0.25 mm in the past hour. A trace amount must not be
+    // treated as "already raining" and swallow the alert.
+    assert.equal(ForecastNextHour.Decide(3.4, 0.25), "INTENSIFYING");
+});
+
+test("完全沒雨時判定為即將降雨", () => {
+    assert.equal(ForecastNextHour.Decide(3.4, 0), "STARTING");
+    assert.equal(ForecastNextHour.Decide(3.4, undefined), "STARTING");
+    assert.equal(ForecastNextHour.Decide(3.4, 0.05), "STARTING");
+});
+
+test("雨勢持平或變小時不通知", () => {
+    assert.equal(ForecastNextHour.Decide(5, 4.5), "NONE", "持續大雨");
+    assert.equal(ForecastNextHour.Decide(5, 5), "NONE");
+    assert.equal(ForecastNextHour.Decide(0.3, 4), "NONE", "雨快停了");
+});
+
+test("未來雨量低於門檻時不通知", () => {
+    assert.equal(ForecastNextHour.Decide(0.1, 0), "NONE");
+    assert.equal(ForecastNextHour.Decide(0.49, 0), "NONE");
+    assert.equal(ForecastNextHour.Decide(undefined, 0), "NONE");
+    assert.equal(ForecastNextHour.Decide(0.5, 0), "STARTING", "剛好達到門檻要通知");
+});
+
+test("雨勢明顯變大時判定為增強", () => {
+    assert.equal(ForecastNextHour.Decide(5, 1.2), "INTENSIFYING");
+    assert.equal(ForecastNextHour.Decide(2, 1), "INTENSIFYING", "剛好兩倍要通知");
+    assert.equal(ForecastNextHour.Decide(1.9, 1), "NONE", "未達兩倍不通知");
+});
+
+test("通知文案依原因給出不同標題", () => {
+    const starting = ForecastNextHour.Message("STARTING", 3.4, 0);
+    assert.equal(starting.title, "1 小時內會下雨");
+    assert.match(starting.body, /3\.4 毫米/);
+
+    const intensifying = ForecastNextHour.Message("INTENSIFYING", 3.4, 0.3);
+    assert.equal(intensifying.title, "雨勢會變大");
+    assert.match(intensifying.body, /3\.4 毫米/);
+    assert.match(intensifying.body, /0\.3 毫米/);
+});

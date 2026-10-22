@@ -39,8 +39,8 @@ export async function Notify() {
             return;
         }
         const provider = new ForecastNextHour({ latitude, longitude, language: "zh-Hant-TW" }, Settings?.API?.CWA?.Token);
-        const { alert, future, past } = await provider.Alert();
-        Console.info("Notify", `alert: ${alert}`, `future: ${future ?? "n/a"}`, `past: ${past ?? "n/a"}`);
+        const { alert, reason, future, past } = await provider.Alert();
+        Console.info("Notify", `alert: ${alert}`, `reason: ${reason}`, `future: ${future ?? "n/a"}`, `past: ${past ?? "n/a"}`);
         if (!alert) {
             Console.info("✅ Notify", "無需通知 / Nothing to report");
             return;
@@ -53,9 +53,11 @@ export async function Notify() {
             return;
         }
         const millimetres = Math.round(future * 10) / 10;
-        notification("即將降雨", location?.name ?? "", `未來 1 小時預估雨量 ${millimetres} 毫米，請記得帶傘`, { sound: true });
+        const previous = Math.round((past ?? 0) * 10) / 10;
+        const { title, body } = ForecastNextHour.Message(reason, millimetres, previous);
+        notification(title, location?.name ?? "", body, { sound: true });
         Storage.setItem("@iRingo.WeatherKit.RainAlert", String(Date.now()));
-        Console.info("✅ Notify", `已通知 / Notified: ${millimetres} mm`);
+        Console.info("✅ Notify", `已通知 / Notified: ${reason}`, `${millimetres} mm`);
     } catch (error) {
         Console.error("Notify", error?.stack ?? error?.message ?? String(error));
     }

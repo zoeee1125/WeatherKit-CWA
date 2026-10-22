@@ -25,6 +25,12 @@ export default class CWA {
     static Endpoint = "https://opendata.cwa.gov.tw/api/v1/rest/datastore";
 
     /**
+     * 警特報頁面，作為預警資料的歸因連結。
+     * Warning page used as the alert attribution link.
+     */
+    static WarningPageURL = "https://www.cwa.gov.tw/V8/C/P/Warning.html";
+
+    /**
      * 只處理距離鄉鎮市區中心在此範圍內的座標。
      * Only handle coordinates within this distance of a township centroid.
      */
@@ -864,12 +870,15 @@ export default class CWA {
      */
     async WeatherAlert() {
         Console.info("☑️ CWA.WeatherAlert");
+        // 警特報集合可能是自行建立的，因此 metadata 必須完整（含語言、座標、有效期），
+        // 不能只給 attributionUrl；缺欄位會讓天氣 App 無法顯示來源與更新時間。
+        // The collection may be built from scratch, so metadata must be complete (language,
+        // coordinates, expiry); a bare attributionUrl leaves the app without provider context.
         const failed = {
-            metadata: {
-                attributionUrl: "https://www.cwa.gov.tw/V8/C/P/Warning.html",
-                    providerName: this.providerName,
+            metadata: this.#Metadata({
+                attributionUrl: CWA.WarningPageURL,
                 temporarilyUnavailable: true,
-            },
+            }),
             detailsUrl: this.AlertDetailsURL(),
             alerts: [],
             areaName: this.location?.county ?? "",
@@ -887,7 +896,7 @@ export default class CWA {
             Console.info("CWA.WeatherAlert", `phenomena: ${phenomena.join(",") || "none"}`);
             if (!phenomena.length) {
                 Console.info("✅ CWA.WeatherAlert", "No active warning");
-                return { ...failed, metadata: { ...failed.metadata, temporarilyUnavailable: false } };
+                return { ...failed, metadata: this.#Metadata({ attributionUrl: CWA.WarningPageURL }) };
             }
             const datasets = new Set();
             for (const phenomenon of phenomena) {
@@ -903,7 +912,7 @@ export default class CWA {
             alerts.sort((a, b) => (CWA.ToUnixSeconds(b.issuedTime) ?? 0) - (CWA.ToUnixSeconds(a.issuedTime) ?? 0));
             Console.info("✅ CWA.WeatherAlert", `alerts: ${alerts.length}`);
             return {
-                metadata: { ...failed.metadata, temporarilyUnavailable: false },
+                metadata: this.#Metadata({ attributionUrl: CWA.WarningPageURL }),
                 detailsUrl: this.AlertDetailsURL(),
                 alerts,
                 areaName: county,

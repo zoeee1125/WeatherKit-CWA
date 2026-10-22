@@ -294,13 +294,6 @@ async function InjectForecastHourly(forecastHourly, Settings, enviroments) {
  */
 async function InjectWeatherAlerts(weatherAlerts, Settings, enviroments) {
     Console.info("☑️ InjectWeatherAlerts");
-    // Apple 對部分地區不會回傳 weatherAlerts 區塊；此時沒有可合併的目標，必須直接跳過。
-    // Apple omits the weatherAlerts slot for some regions; there is nothing to merge into, so skip.
-    if (!weatherAlerts) {
-        Console.warn("InjectWeatherAlerts", "No Apple weatherAlerts slot");
-        Console.info("✅ InjectWeatherAlerts");
-        return weatherAlerts;
-    }
     let newWeatherAlerts;
     switch (Settings?.WeatherAlerts?.Provider) {
         case "WeatherKit":
@@ -310,12 +303,41 @@ async function InjectWeatherAlerts(weatherAlerts, Settings, enviroments) {
             break;
         }
     }
-    if (newWeatherAlerts?.metadata) {
-        weatherAlerts.metadata = { ...weatherAlerts?.metadata, ...newWeatherAlerts.metadata };
-        weatherAlerts.detailsUrl = newWeatherAlerts.detailsUrl ?? weatherAlerts.detailsUrl;
-        weatherAlerts.alerts = WeatherAlerts.mergeAlerts(weatherAlerts?.alerts, newWeatherAlerts?.alerts);
-        weatherAlerts.metadata.providerLogo = providerNameToLogo(weatherAlerts.metadata.providerName);
+    if (!newWeatherAlerts?.metadata) {
+        Console.info("✅ InjectWeatherAlerts");
+        return weatherAlerts;
     }
+    // Apple 對臺灣不回 weatherAlerts 資料槽；就算回了，內容也是空的。
+    // 兩種情況都沒有可合併的目標，只能自行組出整個集合。
+    // Apple either omits the weatherAlerts slot for Taiwan or returns it empty; in both cases
+    // there is nothing to merge into, so the whole collection is built here.
+    if (!Array.isArray(weatherAlerts?.alerts) || !weatherAlerts.alerts.length) {
+        const cwa = enviroments?.cwa;
+        const collection = WeatherAlerts.BuildCollection(newWeatherAlerts, {
+            attributionUrl: newWeatherAlerts.metadata.attributionUrl,
+            countryCode: cwa?.country,
+            detailsUrl: newWeatherAlerts.detailsUrl,
+            eventSource: cwa?.providerName,
+            identifier: cwa ? `${cwa.latitude},${cwa.longitude}` : "",
+            language: cwa?.weatherKitLanguage,
+            latitude: cwa?.latitude,
+            longitude: cwa?.longitude,
+            providerLogo: providerNameToLogo(newWeatherAlerts.metadata.providerName),
+            providerName: newWeatherAlerts.metadata.providerName,
+        });
+        if (!collection) {
+            Console.warn("InjectWeatherAlerts", "No Apple weatherAlerts slot and no active warning");
+            Console.info("✅ InjectWeatherAlerts");
+            return weatherAlerts;
+        }
+        Console.info("✅ InjectWeatherAlerts", `built collection, alerts: ${collection.alerts.length}`);
+        Console.debug(`weatherAlerts: ${JSON.stringify(collection, null, 2)}`);
+        return collection;
+    }
+    weatherAlerts.metadata = { ...weatherAlerts?.metadata, ...newWeatherAlerts.metadata };
+    weatherAlerts.detailsUrl = newWeatherAlerts.detailsUrl ?? weatherAlerts.detailsUrl;
+    weatherAlerts.alerts = WeatherAlerts.mergeAlerts(weatherAlerts?.alerts, newWeatherAlerts?.alerts);
+    weatherAlerts.metadata.providerLogo = providerNameToLogo(weatherAlerts.metadata.providerName);
     Console.info("✅ InjectWeatherAlerts");
     return weatherAlerts;
 }

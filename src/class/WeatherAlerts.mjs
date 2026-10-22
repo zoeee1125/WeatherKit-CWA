@@ -53,6 +53,23 @@ import { Console } from "@nsnanocat/util";
  */
 
 /**
+ * 自建 WeatherAlert 集合上下文。
+ * Context for building a complete alert collection from scratch.
+ * @typedef {{
+ *     attributionUrl?: URL | string,
+ *     countryCode?: string,
+ *     detailsUrl?: string,
+ *     eventSource?: string,
+ *     identifier?: string,
+ *     language?: string,
+ *     latitude?: number,
+ *     longitude?: number,
+ *     providerLogo?: string,
+ *     providerName?: string,
+ * }} WeatherAlertCollectionContext
+ */
+
+/**
  * WeatherKit REST WeatherAlert。
  * WeatherKit REST WeatherAlert.
  * @typedef {{
@@ -90,6 +107,18 @@ import { Console } from "@nsnanocat/util";
  * WeatherKit REST WeatherAlert collection converter.
  */
 export default class WeatherAlerts {
+    /**
+     * 自建預警集合的有效期（秒）。
+     * Validity window for a self-built alert collection.
+     */
+    static CollectionExpirationInterval = 60 * 60;
+
+    /**
+     * 來源沒有結束時間時，預警的預設存活時間（秒）。
+     * Default alert lifetime when the provider supplies no end time.
+     */
+    static DefaultAlertLifetime = 12 * 60 * 60;
+
     /**
      * 將新的來源預警數組合併到原始 Apple 預警陣列。
      * Merge new source alerts into the original Apple alert array.
@@ -224,8 +253,16 @@ export default class WeatherAlerts {
             "mergeAlerts",
             `appleAlertCount: ${to.length}`,
             `sourceAlertCount: ${from.length}`,
-            `appleAlerts: ${JSON.stringify(to.map((alert, index) => WeatherAlerts.#WeatherAlertDebugSnapshot(alert, index)), null, 2)}`,
-            `sourceAlerts: ${JSON.stringify(from.map((alert, index) => WeatherAlerts.#WeatherAlertDebugSnapshot(alert, index)), null, 2)}`,
+            `appleAlerts: ${JSON.stringify(
+                to.map((alert, index) => WeatherAlerts.#WeatherAlertDebugSnapshot(alert, index)),
+                null,
+                2,
+            )}`,
+            `sourceAlerts: ${JSON.stringify(
+                from.map((alert, index) => WeatherAlerts.#WeatherAlertDebugSnapshot(alert, index)),
+                null,
+                2,
+            )}`,
         );
     }
 
@@ -252,13 +289,7 @@ export default class WeatherAlerts {
     static #LogMergeAlertPatch(before, appleAlert, appleAlertIndex, sourceAlertIndex) {
         if (!WeatherAlerts.#IsDebug()) return;
         const after = WeatherAlerts.#WeatherAlertDebugSnapshot(appleAlert, appleAlertIndex);
-        Console.debug(
-            "mergeAlerts",
-            `appleAlertIndex: ${appleAlertIndex}`,
-            `sourceAlertIndex: ${sourceAlertIndex}`,
-            `changed: ${JSON.stringify(WeatherAlerts.#WeatherAlertDebugChanges(before, after), null, 2)}`,
-            `after: ${JSON.stringify(after, null, 2)}`,
-        );
+        Console.debug("mergeAlerts", `appleAlertIndex: ${appleAlertIndex}`, `sourceAlertIndex: ${sourceAlertIndex}`, `changed: ${JSON.stringify(WeatherAlerts.#WeatherAlertDebugChanges(before, after), null, 2)}`, `after: ${JSON.stringify(after, null, 2)}`);
     }
 
     static #SourceAlertCandidates(appleAlert, sourceAlerts, usedSourceAlertIndexes) {
@@ -405,13 +436,128 @@ export default class WeatherAlerts {
     }
 
     /**
+     * 自行組出完整的警特報集合，供 FlatBuffer 編碼使用。
+     * Build a complete alert collection in the FlatBuffer shape.
+     *
+     * Apple 對臺灣不回 `weatherAlerts` 資料槽，沒有可以合併的目標，只能把整個集合補上。
+     * Apple omits the `weatherAlerts` slot for Taiwan, so the whole collection has to be supplied.
+     *
+     * 與 {@link WeatherAlerts.Build} 的差別：這裡直接輸出 FlatBuffer 解碼後的形狀
+     * （`attributionUrl` 小寫、列舉為大寫常數、時間為 Unix 秒），不需要再經過 REST 轉換。
+     * Unlike {@link WeatherAlerts.Build}, this returns the decoded FlatBuffer shape: camelCase
+     * `attributionUrl`, upper-case enum names, and Unix-second timestamps.
+     *
+     * @param {ExtractedWeatherAlerts} extracted 標準化後的來源資料 / Normalized provider data.
+     * @param {WeatherAlertCollectionContext} context 集合上下文 / Collection context.
+     * @returns {{metadata: object, detailsUrl: string, alerts: object[]} | undefined} 集合；沒有預警時為 undefined / Collection, or undefined when there is nothing to show.
+     */
+    static BuildCollection(extracted, context = {}) {
+        const alerts = Array.isArray(extracted?.alerts) ? extracted.alerts : [];
+        if (!alerts.length) return undefined;
+        return {
+            metadata: WeatherAlerts.#BuildCollectionMetadata(extracted, context),
+            detailsUrl: String(context?.detailsUrl ?? ""),
+            alerts: alerts.map((alert, precedence) => WeatherAlerts.#BuildFlatBufferAlert(alert, extracted, context, precedence)),
+        };
+    }
+
+    static #BuildCollectionMetadata(extracted, context) {
+        const now = Math.trunc(Date.now() / 1000);
+        const source = extracted?.metadata ?? {};
+        const latitude = Number(source.latitude ?? context?.latitude);
+        const longitude = Number(source.longitude ?? context?.longitude);
+        return {
+            attributionUrl: String(source.attributionUrl ?? context?.attributionUrl ?? ""),
+            expireTime: WeatherAlerts.#ToUnixSeconds(source.expireTime) ?? now + WeatherAlerts.CollectionExpirationInterval,
+            language: String(source.language ?? context?.language ?? ""),
+            latitude: Number.isFinite(latitude) ? latitude : 0,
+            longitude: Number.isFinite(longitude) ? longitude : 0,
+            providerLogo: String(context?.providerLogo ?? ""),
+            providerName: String(source.providerName ?? context?.providerName ?? ""),
+            readTime: WeatherAlerts.#ToUnixSeconds(source.readTime) ?? now,
+            reportedTime: WeatherAlerts.#ToUnixSeconds(source.reportedTime) ?? now,
+            temporarilyUnavailable: Boolean(source.temporarilyUnavailable),
+            sourceType: String(source.sourceType ?? "MODELED"),
+        };
+    }
+
+    static #BuildFlatBufferAlert(alert, extracted, context, precedence) {
+        // 編碼器對字串欄位呼叫 createString，傳入 undefined 會直接拋錯；所有字串都必須有值。
+        // The encoder calls createString on every string field and throws on undefined, so fill them all.
+        const uid = WeatherAlerts.#StableUUID(`${context?.identifier ?? ""}:${alert?.identifier ?? precedence}`);
+        const issuedTime = WeatherAlerts.#ToUnixSeconds(alert?.issuedTime);
+        const effectiveTime = WeatherAlerts.#ToUnixSeconds(alert?.effectiveTime ?? alert?.issuedTime) ?? issuedTime ?? Math.trunc(Date.now() / 1000);
+        const expireTime = WeatherAlerts.#ToUnixSeconds(alert?.expireTime) ?? WeatherAlerts.#ToUnixSeconds(alert?.eventEndTime) ?? effectiveTime + WeatherAlerts.DefaultAlertLifetime;
+        const severity = WeatherAlerts.#FlatBufferWeatherAlertEnum("severity", alert?.severity) || "UNKNOWN";
+        return {
+            id: uid,
+            areaId: String(alert?.areaId ?? ""),
+            areaName: String(alert?.areaName ?? extracted?.areaName ?? ""),
+            attributionUrl: String(context?.attributionUrl ?? ""),
+            countryCode: String(context?.countryCode ?? ""),
+            description: WeatherAlerts.#NormalizeWeatherAlertTitle(alert?.description, alert?.eventName),
+            token: String(alert?.token ?? ""),
+            effectiveTime,
+            expireTime,
+            issuedTime: issuedTime ?? effectiveTime,
+            eventOnsetTime: WeatherAlerts.#ToUnixSeconds(alert?.eventOnsetTime ?? alert?.effectiveTime ?? alert?.issuedTime) ?? effectiveTime,
+            eventEndTime: WeatherAlerts.#ToUnixSeconds(alert?.eventEndTime) ?? expireTime,
+            detailsUrl: `#${uid}`,
+            phenomenon: String(alert?.phenomenon ?? ""),
+            severity,
+            significance: WeatherAlerts.#FlatBufferWeatherAlertEnum("significance", alert?.significance) || WeatherAlerts.#SignificanceFromSeverity(alert?.severity),
+            source: String(alert?.source ?? extracted?.source ?? ""),
+            eventSource: String(context?.eventSource ?? context?.countryCode ?? ""),
+            urgency: WeatherAlerts.#FlatBufferWeatherAlertEnum("urgency", alert?.urgency) || "UNKNOWN",
+            certainty: WeatherAlerts.#FlatBufferWeatherAlertEnum("certainty", alert?.certainty) || "UNKNOWN",
+            importance: WeatherAlerts.#FlatBufferWeatherAlertEnum("importance", alert?.importance || WeatherAlerts.#ImportanceFromSeverity(alert?.severity)) || "NORMAL",
+            responses: WeatherAlerts.#BuildFlatBufferResponses(alert?.guidelines, alert?.responses),
+            unknown23: 0,
+            unknown24: 0,
+            unknown25: 0,
+            unknown26: 0,
+        };
+    }
+
+    /**
+     * 來源沒有 significance 時，依嚴重度推導 CAP 的 significance。
+     * Derive CAP significance from severity when the provider does not supply it.
+     * 中央氣象署的 CAP 沒有 significance 欄位，全部留 UNKNOWN 會讓前端無從分級。
+     * CWA CAP carries no significance, and leaving it UNKNOWN gives the UI nothing to rank by.
+     * @param {string} severity 預警嚴重度 / Alert severity.
+     * @returns {"WARNING" | "ADVISORY" | "STATEMENT" | "UNKNOWN"} CAP significance.
+     */
+    static #SignificanceFromSeverity(severity) {
+        switch (
+            String(severity ?? "")
+                .trim()
+                .toLowerCase()
+        ) {
+            case "extreme":
+            case "severe":
+                return "WARNING";
+            case "moderate":
+                return "ADVISORY";
+            case "minor":
+                return "STATEMENT";
+            case "unknown":
+            default:
+                return "UNKNOWN";
+        }
+    }
+
+    /**
      * 根據 Apple 官方樣例中的 importance 分層，從來源嚴重度推導重要性。
      * Derive WeatherKit importance from source severity when upstream does not provide it.
      * @param {string} severity 預警嚴重度 / Alert severity.
      * @returns {"high" | "normal" | "low"} Apple WeatherAlert importance.
      */
     static #ImportanceFromSeverity(severity) {
-        switch (String(severity ?? "").trim().toLowerCase()) {
+        switch (
+            String(severity ?? "")
+                .trim()
+                .toLowerCase()
+        ) {
             case "extreme":
             case "severe":
                 return "high";
@@ -438,7 +584,7 @@ export default class WeatherAlerts {
             const response = WeatherAlerts.#ResponseFromGuideline(guideline);
             if (response && !inferredResponses.includes(response)) inferredResponses.push(response);
         }
-        return inferredResponses.length ? inferredResponses : (guidelines?.length ? ["monitor"] : []);
+        return inferredResponses.length ? inferredResponses : guidelines?.length ? ["monitor"] : [];
     }
 
     /**
@@ -463,7 +609,9 @@ export default class WeatherAlerts {
      * @returns {string | null} 動作 token / Action token.
      */
     static #ResponseFromGuideline(guideline) {
-        const text = String(guideline ?? "").trim().toLowerCase();
+        const text = String(guideline ?? "")
+            .trim()
+            .toLowerCase();
         if (!text) return null;
         const compact = text.replace(/\s+/g, "");
 
@@ -501,7 +649,10 @@ export default class WeatherAlerts {
     }
 
     static #NormalizeFlatBufferWeatherAlertEnum(value) {
-        return String(value ?? "").trim().replace(/[_\s-]+/g, "").toLowerCase();
+        return String(value ?? "")
+            .trim()
+            .replace(/[_\s-]+/g, "")
+            .toLowerCase();
     }
 
     static #FlatBufferWeatherAlertCertainty(value) {
@@ -551,7 +702,7 @@ export default class WeatherAlerts {
             case "assess":
                 return "ASSESS";
             case "allclear":
-                return "ALL_CLEAR";
+                return "ALLCLEAR";
             case "none":
                 return "NONE";
             default:
@@ -647,7 +798,7 @@ export default class WeatherAlerts {
     static #TrimWeatherAlertTitle(title) {
         return String(title ?? "")
             .trim()
-            .replace(/\s*[\[【][^\]】]+[\]】]\s*$/u, "")
+            .replace(/\s*[[【][^\]】]+[\]】]\s*$/u, "")
             .replace(/\s*[。．.]+\s*$/gu, "")
             .replace(/預警訊號$/u, "預警")
             .replace(/預警訊號$/u, "預警");

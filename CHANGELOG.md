@@ -1,3 +1,17 @@
+## v3.5.5
+
+### 🆕 New Features
+  * 天氣警特報改為自行建立 `weatherAlerts` 資料槽：Apple 對臺灣完全不回這個槽，原本的流程沒有可合併的目標，中央氣象署的警特報其實從未進入天氣 App。現在 `WeatherAlerts.BuildCollection()` 直接組出 FlatBuffer 形狀的完整集合（來源資訊、預警清單、穩定的預警 id），補進根資料表第 6 個 slot。
+  * 只有生效中的警特報才會補上資料槽；沒有警報時行為與 Apple 原樣一致，不會多出空的預警區塊。
+  * 中央氣象署 CAP 沒有 `significance`，改由嚴重度推導（`WARNING`／`ADVISORY`／`STATEMENT`），讓天氣 App 有級別可以分層顯示。
+
+### 🛠️ Bug Fixes
+  * 修正 `weatherAlerts` 的動作列舉對映：`allClear` 原本輸出 `ALL_CLEAR`，但 FlatBuffer 列舉是 `ALLCLEAR`，會編碼成 `NaN`。
+  * 警特報的來源資訊補齊語言、座標、有效期與更新時間，不再只有 `attributionUrl`；缺少這些欄位時，自行建立的集合會顯示不出來源與更新時間。
+
+### 🔄 Other Changes
+  * 新增 `weatherAlerts` 自建集合的迴歸測試：形狀、列舉、時間單位、id 穩定性，以及缺少資料槽時的完整編碼往返。
+
 ## v3.5.4
 
 ### 🛠️ Bug Fixes

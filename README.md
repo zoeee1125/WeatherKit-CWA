@@ -23,6 +23,10 @@
 
 訂閱一次即可，之後發布新版本時 Surge 會自動更新。完整說明、資料集對應與已知限制見 [docs/cwa-provider.md](docs/cwa-provider.md)。
 
+## 降雨通知
+
+「未來一小時降水強度」通知由天氣 App 自己發出：模組把中央氣象署的雨量換成 Apple 的逐分鐘結構，系統便有起雨時間可以排定通知，不需要代理程式常駐排程。前提是該城市在關注列表中並已開啟通知；`[降雨通知] 通知方式` 可切換原生優先（預設）、只用原生或只用排程。詳見 [docs/cwa-provider.md](docs/cwa-provider.md)。
+
 ## 授權
 
 Apache-2.0，見 [LICENSE](LICENSE)。

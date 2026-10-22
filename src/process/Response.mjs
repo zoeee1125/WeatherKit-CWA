@@ -293,8 +293,13 @@ async function InjectForecastHourly(forecastHourly, Settings, enviroments) {
 async function InjectForecastNextHour(forecastNextHour, Settings, enviroments) {
     Console.info("☑️ InjectForecastNextHour");
     // Apple 對台灣不會回傳 forecastNextHour 區塊，此時直接建立新的資料槽。
-    // Apple omits the forecastNextHour slot for Taiwan, so a new slot is created instead.
-    if (forecastNextHour) {
+    // 少數情況下會回一個沒有逐分鐘資料的空槽，同樣視為沒有資料，否則中央氣象署的預報
+    // 永遠補不進去，天氣 App 也就沒有起雨時間可以排定通知。
+    // Apple omits the forecastNextHour slot for Taiwan, so a new slot is created instead. It
+    // occasionally returns an empty slot without minute data; treating that as absent keeps the
+    // CWA forecast (and the onset the Weather app schedules notifications against) in place.
+    const hasMinutes = Array.isArray(forecastNextHour?.minutes) && forecastNextHour.minutes.length > 0;
+    if (hasMinutes) {
         Console.info("✅ InjectForecastNextHour");
         return forecastNextHour;
     }

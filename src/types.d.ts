@@ -51,6 +51,39 @@ export interface Settings {
          */
         Provider?: 'WeatherKit' | 'CWA';
 };
+    NextHour?: {
+    /**
+         * [未來一小時降水] 資料源
+         *
+         * 使用選定的資料源補上未來一小時降水預報。Apple 只對部分地區提供這份資料，中央氣象署則以 QPESUMS 雷達定量降雨預報格點資料提供臺灣資料。
+         *
+         * @remarks
+         *
+         * Possible values:
+         * - `'WeatherKit'` - WeatherKit（不修改）
+         * - `'CWA'` - 中央氣象署（臺灣）
+         *
+         * @defaultValue "CWA"
+         */
+        Provider?: 'WeatherKit' | 'CWA';
+};
+    RainAlert?: {
+    /**
+         * [降雨通知] 通知方式
+         *
+         * 選擇「未來一小時降雨」通知的來源。天氣 App 的原生通知由未來一小時降水資料驅動，需要城市在關注列表中並開啟「未來一小時降水強度」通知；排程通知由代理程式定時執行腳本，不需要天氣 App 在背景更新。Auto 在天氣 App 剛更新過資料時不補送，避免同一場雨跳出兩則通知。
+         *
+         * @remarks
+         *
+         * Possible values:
+         * - `'Auto'` - 天氣 App 原生優先，排程補送
+         * - `'Weather'` - 只用天氣 App 原生通知
+         * - `'Cron'` - 只用排程通知
+         *
+         * @defaultValue "Auto"
+         */
+        Mode?: 'Auto' | 'Weather' | 'Cron';
+};
     AirQuality?: {
     /**
          * [空氣品質] 資料源

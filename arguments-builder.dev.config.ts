@@ -1,5 +1,5 @@
 import { defineConfig } from "@iringo/arguments-builder";
-import { airQuality, api, dataSetsFull, logLevel, nextHour, storage, weatherFull, weatherAlerts } from "./arguments-builder.full.config";
+import { airQuality, api, dataSetsFull, logLevel, nextHour, rainAlert, storage, weatherFull, weatherAlerts } from "./arguments-builder.full.config";
 
 export default defineConfig({
     output: {
@@ -26,5 +26,5 @@ export default defineConfig({
             scope: "@iRingo.WeatherKit.Settings",
         },
     },
-    args: [...dataSetsFull, ...weatherFull, ...weatherAlerts, ...nextHour, ...airQuality, ...api, ...storage, ...logLevel],
+    args: [...dataSetsFull, ...weatherFull, ...weatherAlerts, ...nextHour, ...rainAlert, ...airQuality, ...api, ...storage, ...logLevel],
 });

@@ -12,13 +12,22 @@ import QPESUMS from "./QPESUMS.mjs";
  * not on the list, so the response carries nothing usable.
  *
  * 這裡改用中央氣象署 QPESUMS 的「未來 1 小時雷達定量降雨預報」格點資料補上，
- * 讓天氣 App 能顯示「接下來一小時」的降水卡片。
- * This class fills the gap with CWA QPESUMS "next hour radar QPF" grid data so the Weather
- * app can render its next-hour precipitation card.
+ * 讓天氣 App 能顯示「接下來一小時」的降水卡片，並排出原生降雨通知。
+ * This class fills the gap with CWA QPESUMS "next hour radar QPF" grid data so the Weather app
+ * can render its next-hour precipitation card and schedule its own rainfall notification.
+ *
+ * 天氣 App 的「未來一小時降水強度」通知不是推播，而是系統讀取這份資料後自行排定：
+ * 逐分鐘資料裡必須存在「先無雨、後有雨」的轉折，`condition` 才會帶上 `START` 與 `FIRST_AT`，
+ * 系統也才有起雨時間可以排定通知。若整小時都是「正在下雨」，系統只知道現在正在下，
+ * 不會發出「即將降雨」的通知。
+ * The Weather app's next-hour precipitation notification is not a push; the system schedules it
+ * from this data. The minute series must contain a dry-to-wet transition so that `condition`
+ * carries `START` with a `FIRST_AT` parameter for the onset. A series that is wet from the first
+ * minute only says it is already raining, so no "rain is coming" alert is scheduled.
  */
 export default class ForecastNextHour {
     static Name = "ForecastNextHour";
-    static Version = "1.0.0";
+    static Version = "2.0.0";
     static Author = "iRingo";
 
     /** 降水強度換算用的分級（毫米／小時）。 / Intensity bands in millimetres per hour. */
@@ -50,6 +59,26 @@ export default class ForecastNextHour {
     /** 預報有效期（秒）；iOS 會隱藏過期的下一小時資料。 / Validity window in seconds. */
     static ExpirationInterval = 10 * 60;
 
+    /** 預報長度（分鐘）。 / Length of the forecast in minutes. */
+    static Horizon = 60;
+
+    /**
+     * 起雨時間的近似值（分鐘）。
+     * Approximate lead time until rain starts, in minutes.
+     *
+     * QPESUMS 只提供「未來一小時累積雨量」，沒有逐分鐘曲線，無法得知雨在這一小時的哪一分鐘
+     * 開始。這裡取與 QPESUMS 更新頻率相同的十分鐘：前十分鐘無雨、之後才下雨，
+     * 系統才有「起雨」事件可以排定通知。
+     * QPESUMS only publishes the accumulated rainfall for the next hour rather than a
+     * minute-by-minute curve, so the exact onset within the hour is unknown. Ten minutes — the
+     * cadence at which QPESUMS refreshes — is used as the approximation: the first ten minutes
+     * stay dry and the rain follows, which gives the system an onset to schedule against.
+     */
+    static OnsetLead = 10;
+
+    /** 有雨時的逐分鐘降水機率（%）。 / Per-minute precipitation chance while raining (%). */
+    static RainChance = 100;
+
     /**
      * 建立未來一小時預報。
      * Create the next-hour forecast.
@@ -74,10 +103,7 @@ export default class ForecastNextHour {
     async #Grid() {
         if (this.#grid) return this.#grid;
         this.#grid = (async () => {
-            const [future, past] = await Promise.all([
-                QPESUMS.Area(this.latitude, this.longitude, QPESUMS.FutureDataset, this.token),
-                QPESUMS.Area(this.latitude, this.longitude, QPESUMS.PastDataset, this.token),
-            ]);
+            const [future, past] = await Promise.all([QPESUMS.Area(this.latitude, this.longitude, QPESUMS.FutureDataset, this.token), QPESUMS.Area(this.latitude, this.longitude, QPESUMS.PastDataset, this.token)]);
             return { future: future.value, past: past.value, time: future.time ?? past.time };
         })();
         return this.#grid;
@@ -87,64 +113,209 @@ export default class ForecastNextHour {
      * 建立 WeatherKit 的 `forecastNextHour` 資料槽。
      * Build the WeatherKit `forecastNextHour` slot.
      *
-     * 中央氣象署只提供「未來一小時累積雨量」，沒有逐分鐘的強度曲線，
-     * 因此把整小時的累積量平均分配到 60 分鐘，強度單位為毫米／小時。
+     * 中央氣象署只提供「未來一小時累積雨量」，沒有逐分鐘的強度曲線，因此把整小時的累積量
+     * 平均分配到有雨的分鐘，強度單位為毫米／小時；起雨時間見 `OnsetLead`。
      * CWA only publishes the accumulated rainfall for the next hour rather than a minute-by-minute
-     * intensity curve, so the hourly total is spread evenly across the 60 minutes; the intensity
-     * unit is millimetres per hour.
+     * intensity curve, so the hourly total is spread evenly across the wet minutes; the intensity
+     * unit is millimetres per hour. See `OnsetLead` for the onset approximation.
      *
      * @returns {Promise<object | undefined>} WeatherKit 資料槽，沒有資料時為 undefined / The WeatherKit slot, or undefined without data.
      */
     async NextHour() {
         Console.info("☑️ ForecastNextHour.NextHour");
-        const { future, time } = await this.#Grid();
+        const { future, past, time } = await this.#Grid();
         if (future === undefined) {
             Console.info("✅ ForecastNextHour.NextHour", "No QPESUMS data");
             return undefined;
         }
-        const rain = future >= ForecastNextHour.RainThreshold;
-        const intensity = rain ? Math.round(future * 100) / 100 : 0;
-        const perceived = ForecastNextHour.Perceived(intensity);
-        const condition = ForecastNextHour.Condition(intensity);
-        const startTime = Math.trunc(Date.now() / 1000);
-        const forecastStart = startTime - (startTime % 60);
-        const forecastEnd = forecastStart + 60 * 60;
-        const minutes = [];
-        for (let index = 0; index < 60; index++) {
-            minutes.push({
-                startTime: forecastStart + index * 60,
-                precipitationChance: rain ? 100 : 0,
-                precipitationIntensity: intensity,
-                perceivedPrecipitationIntensity: perceived,
-            });
-        }
+        const now = Math.trunc(Date.now() / 1000);
+        const forecastStart = now - (now % 60);
+        const willRain = future >= ForecastNextHour.RainThreshold;
+        // 過去一小時已經有明顯雨量時視為「正在下雨」，不再製造起雨轉折，
+        // 否則天氣 App 會對一場已經在下、使用者早就知道的雨再通知一次。
+        // Rain in the past hour means it is already raining; no onset transition is created so the
+        // Weather app does not announce a rain event the user is already in.
+        const ongoing = (past ?? 0) >= QPESUMS.MinimumRain;
+        const lead = willRain && !ongoing ? Math.min(ForecastNextHour.OnsetLead, ForecastNextHour.Horizon - 1) : 0;
+        const onset = willRain ? forecastStart + lead * 60 : undefined;
+        const wetMinutes = ForecastNextHour.Horizon - lead;
+        // 整小時累積雨量換算成「有雨分鐘」的降雨強度（毫米／小時）。
+        // Convert the hourly total into an intensity over the wet minutes (millimetres per hour).
+        const intensity = willRain ? Math.round((future * 60 * 100) / wetMinutes) / 100 : 0;
+        const minutes = ForecastNextHour.Minutes({ startTime: forecastStart, onset, intensity, chance: ForecastNextHour.RainChance });
+        const summary = ForecastNextHour.Runs(minutes);
+        const condition = ForecastNextHour.Conditions(summary);
         const result = {
-            metadata: this.#Metadata({ reportedTime: ForecastNextHour.ToUnixSeconds(time) ?? startTime }),
-            condition: [
-                {
-                    beginCondition: condition,
-                    endCondition: condition,
-                    forecastToken: rain ? "CONSTANT" : "CLEAR",
-                    parameters: [],
-                    startTime: forecastStart,
-                    endTime: 0,
-                },
-            ],
-            summary: [
-                {
-                    condition: rain ? "RAIN" : "CLEAR",
-                    startTime: forecastStart,
-                    endTime: forecastEnd,
-                    precipitationChance: rain ? 100 : 0,
-                    precipitationIntensity: intensity,
-                },
-            ],
+            metadata: this.#Metadata({ reportedTime: ForecastNextHour.ToUnixSeconds(time) ?? now }),
+            condition,
+            summary,
             minutes,
             forecastStart,
-            forecastEnd,
+            forecastEnd: forecastStart + ForecastNextHour.Horizon * 60,
         };
-        Console.info("✅ ForecastNextHour.NextHour", `rain: ${rain}`, `intensity: ${intensity} mm/h`, `time: ${time ?? "n/a"}`);
+        Console.info("✅ ForecastNextHour.NextHour", `rain: ${willRain}`, `ongoing: ${ongoing}`, `onset: ${onset ?? "n/a"}`, `intensity: ${intensity} mm/h`, `time: ${time ?? "n/a"}`);
+        Console.debug("ForecastNextHour.NextHour", `condition: ${JSON.stringify(condition)}`, `summary: ${JSON.stringify(summary)}`);
         return result;
+    }
+
+    /**
+     * 建立逐分鐘降水序列。
+     * Build the per-minute precipitation series.
+     *
+     * @param {{startTime?: number, onset?: number, intensity?: number, chance?: number}} [options] 選項 / Options.
+     * @returns {object[]} 逐分鐘資料，附帶 `condition`、`summaryCondition` 與 `clear` 供後續彙整 / Minute entries carrying `condition`, `summaryCondition` and `clear` for aggregation.
+     */
+    static Minutes({ startTime = 0, onset, intensity = 0, chance = ForecastNextHour.RainChance } = {}) {
+        const minutes = [];
+        for (let index = 0; index < ForecastNextHour.Horizon; index++) {
+            const minuteStart = startTime + index * 60;
+            const wet = onset !== undefined && minuteStart >= onset;
+            const value = wet ? intensity : 0;
+            minutes.push({
+                startTime: minuteStart,
+                precipitationChance: wet ? chance : 0,
+                precipitationIntensity: value,
+                perceivedPrecipitationIntensity: ForecastNextHour.Perceived(value),
+                // 以下三個欄位只供彙整使用，編碼時會被忽略。
+                // The three fields below are only used for aggregation and are dropped when encoding.
+                condition: ForecastNextHour.Condition(value),
+                summaryCondition: wet ? "RAIN" : "CLEAR",
+                clear: !wet,
+            });
+        }
+        return minutes;
+    }
+
+    /**
+     * 把逐分鐘序列合併成連續的降水段落。
+     * Merge the minute series into consecutive precipitation runs.
+     *
+     * 段落以降水類型（有雨／無雨）切分，強度取段落內最大值；天氣 App 靠這些段落畫出
+     * 「幾分鐘後開始下雨」的時間軸。
+     * Runs are split by precipitation type (wet or dry) and keep the maximum intensity inside the
+     * run; the Weather app draws its "rain in N minutes" timeline from them.
+     *
+     * @param {object[]} minutes 逐分鐘資料 / Minute entries.
+     * @returns {object[]} 降水段落 / Precipitation runs.
+     */
+    static Runs(minutes = []) {
+        const runs = [];
+        for (const minute of minutes) {
+            const last = runs.at(-1);
+            if (last && last.condition === minute.summaryCondition) {
+                last.endTime = minute.startTime + 60;
+                last.precipitationChance = Math.max(last.precipitationChance, minute.precipitationChance);
+                if (minute.precipitationIntensity > last.precipitationIntensity) {
+                    last.precipitationIntensity = minute.precipitationIntensity;
+                    last.maxCondition = minute.condition;
+                }
+                continue;
+            }
+            runs.push({
+                condition: minute.summaryCondition,
+                startTime: minute.startTime,
+                endTime: minute.startTime + 60,
+                precipitationChance: minute.precipitationChance,
+                precipitationIntensity: minute.precipitationIntensity,
+                maxCondition: minute.condition,
+                clear: minute.clear,
+            });
+        }
+        return runs;
+    }
+
+    /**
+     * 由降水段落產生天氣 App 的時間軸事件。
+     * Turn the precipitation runs into the Weather app's timeline events.
+     *
+     * `forecastToken` 是系統判斷事件的依據：`START` 代表「幾點開始下雨」、`STOP` 代表「幾點停」，
+     * 時間放在 `parameters` 的 `FIRST_AT`／`SECOND_AT`。少了 `START` 與 `FIRST_AT`，
+     * 系統就不知道雨何時開始，也就不會排定降雨通知。
+     * `forecastToken` is what the system reads: `START` means "rain begins at", `STOP` means "rain
+     * ends at", and the times live in the `FIRST_AT` / `SECOND_AT` parameters. Without `START` and
+     * `FIRST_AT` the system has no onset to schedule a rainfall notification against.
+     *
+     * @param {object[]} runs 降水段落 / Precipitation runs.
+     * @returns {object[]} `condition` 陣列 / The `condition` array.
+     */
+    static Conditions(runs = []) {
+        const conditions = [];
+        if (!runs.length) return conditions;
+        for (let index = 0; index < runs.length; index++) {
+            const current = runs[index];
+            const next = runs[index + 1];
+            const afterNext = runs[index + 2];
+            // 無雨段落只負責交代「下一段何時開始」，時間軸本身交給下一段。
+            // A dry run only announces when the next run begins.
+            if (current.clear) {
+                if (!next) {
+                    conditions.push({
+                        beginCondition: current.maxCondition,
+                        endCondition: current.maxCondition,
+                        forecastToken: "CLEAR",
+                        parameters: [],
+                        startTime: current.startTime,
+                        endTime: 0,
+                    });
+                } else if (afterNext) {
+                    conditions.push({
+                        beginCondition: next.maxCondition,
+                        endCondition: next.maxCondition,
+                        forecastToken: "START_STOP",
+                        parameters: [
+                            { date: next.startTime, type: "FIRST_AT" },
+                            { date: next.endTime, type: "SECOND_AT" },
+                        ],
+                        startTime: current.startTime,
+                        endTime: current.endTime,
+                    });
+                } else {
+                    conditions.push({
+                        beginCondition: next.maxCondition,
+                        endCondition: next.maxCondition,
+                        forecastToken: "START",
+                        parameters: [{ date: next.startTime, type: "FIRST_AT" }],
+                        startTime: current.startTime,
+                        endTime: current.endTime,
+                    });
+                }
+                continue;
+            }
+            // 有雨段落：最後一段沒有結束時間，`endTime` 必須寫 0。
+            // A wet run runs to the horizon, which is encoded as an `endTime` of zero.
+            if (!next) {
+                conditions.push({
+                    beginCondition: current.maxCondition,
+                    endCondition: current.maxCondition,
+                    forecastToken: "CONSTANT",
+                    parameters: [],
+                    startTime: current.startTime,
+                    endTime: 0,
+                });
+            } else if (afterNext) {
+                conditions.push({
+                    beginCondition: current.maxCondition,
+                    endCondition: afterNext.maxCondition,
+                    forecastToken: "STOP_START",
+                    parameters: [
+                        { date: current.endTime, type: "FIRST_AT" },
+                        { date: afterNext.startTime, type: "SECOND_AT" },
+                    ],
+                    startTime: current.startTime,
+                    endTime: current.endTime,
+                });
+            } else {
+                conditions.push({
+                    beginCondition: current.maxCondition,
+                    endCondition: current.maxCondition,
+                    forecastToken: "STOP",
+                    parameters: [{ date: current.endTime, type: "FIRST_AT" }],
+                    startTime: current.startTime,
+                    endTime: current.endTime,
+                });
+            }
+        }
+        return conditions;
     }
 
     /**
@@ -234,6 +405,13 @@ export default class ForecastNextHour {
     /**
      * 建立氣象資料中繼資料。
      * Build the WeatherKit metadata.
+     *
+     * 有效期從「現在」起算：QPESUMS 的觀測時間可能已經過了幾分鐘，若從觀測時間加十分鐘，
+     * 資料一送達就快過期，天氣 App 會直接隱藏卡片與通知。
+     * The validity window starts at the current time: the QPESUMS issue time can already be a few
+     * minutes old, and counting the ten minutes from it would leave the data nearly expired on
+     * arrival, which makes the Weather app hide both the card and the notification.
+     *
      * @param {{reportedTime?: number}} [options] 選項 / Options.
      * @returns {object}
      */
@@ -241,7 +419,7 @@ export default class ForecastNextHour {
         const timeStamp = Math.trunc(Date.now() / 1000);
         return {
             attributionUrl: "https://www.cwa.gov.tw/V8/C/P/QPF.html",
-            expireTime: (reportedTime ?? timeStamp) + ForecastNextHour.ExpirationInterval,
+            expireTime: timeStamp + ForecastNextHour.ExpirationInterval,
             language: this.language,
             latitude: this.latitude,
             longitude: this.longitude,
@@ -298,7 +476,7 @@ export default class ForecastNextHour {
      * @returns {string} WeatherKit 的 ConditionType / WeatherKit ConditionType.
      */
     static Condition(intensity) {
-        const { NO, LIGHT, MODERATE, HEAVY } = ForecastNextHour.#Bands;
+        const { NO, LIGHT, MODERATE } = ForecastNextHour.#Bands;
         switch (true) {
             case !Number.isFinite(intensity) || intensity <= 0:
                 return "CLEAR";

@@ -283,9 +283,9 @@ test("CWA-only settings expose the provider, datasets, token, and Traditional Ch
     assert.match(full, /export const weather = \[weatherProvider\]/);
     assert.match(full, /export const weatherAlerts = \[weatherAlertsProvider\]/);
     assert.match(release, /import \{[^}]*airQuality[^}]*dataSets[^}]*weather[^}]*weatherAlerts[^}]*\} from "\.\/arguments-builder\.full\.config"/);
-    assert.match(release, /args: \[\.\.\.dataSets, \.\.\.weather, \.\.\.weatherAlerts, \.\.\.nextHour, \.\.\.airQuality, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
+    assert.match(release, /args: \[\.\.\.dataSets, \.\.\.weather, \.\.\.weatherAlerts, \.\.\.nextHour, \.\.\.rainAlert, \.\.\.airQuality, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
     assert.match(dev, /import \{[^}]*airQuality[^}]*dataSetsFull[^}]*weatherFull[^}]*\} from "\.\/arguments-builder\.full\.config"/);
-    assert.match(dev, /args: \[\.\.\.dataSetsFull, \.\.\.weatherFull, \.\.\.weatherAlerts, \.\.\.nextHour, \.\.\.airQuality, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
+    assert.match(dev, /args: \[\.\.\.dataSetsFull, \.\.\.weatherFull, \.\.\.weatherAlerts, \.\.\.nextHour, \.\.\.rainAlert, \.\.\.airQuality, \.\.\.api, \.\.\.storage, \.\.\.logLevel\]/);
 
     // 發布版資料集只包含中央氣象署實際提供的四項。
     // The release dataset list only contains what CWA actually provides.
@@ -307,8 +307,10 @@ test("CWA-only settings expose the provider, datasets, token, and Traditional Ch
     assert.match(database, /Weather: \{ Provider: "CWA" \}/);
     assert.match(database, /WeatherAlerts: \{ Provider: "CWA" \}/);
     assert.match(database, /NextHour: \{ Provider: "CWA" \}/);
+    assert.match(database, /RainAlert: \{ Mode: "Auto" \}/);
     assert.match(database, /API: \{ CWA: \{ Token: "" \}, Environment: \{ Token: "" \} \}/);
     assert.match(types, /Provider\?: 'WeatherKit' \| 'CWA'/);
+    assert.match(types, /Mode\?: 'Auto' \| 'Weather' \| 'Cron'/);
     assert.match(boxjs, /@iRingo\.WeatherKit\.Settings\.WeatherAlerts\.Provider[\s\S]*"val":\s*"CWA"[\s\S]*"key":\s*"WeatherKit"/);
 
     const boxjsSettings = JSON.parse(boxjs);
@@ -320,6 +322,14 @@ test("CWA-only settings expose the provider, datasets, token, and Traditional Ch
         ["WeatherKit", "CWA"],
     );
     assert.equal(boxjsSettings.some(({ id }) => id === "@iRingo.WeatherKit.Settings.Storage"), false);
+    // 降雨通知方式預設交給天氣 App 原生通知，排程只在天氣 App 沒有更新時補送。
+    // The notification mode defaults to native-first, with the scheduled script only as a fallback.
+    const rainAlertSetting = boxjsSettings.find(({ id }) => id === "@iRingo.WeatherKit.Settings.RainAlert.Mode");
+    assert.equal(rainAlertSetting.val, "Auto");
+    assert.deepEqual(
+        rainAlertSetting.items.map(({ key }) => key),
+        ["Auto", "Weather", "Cron"],
+    );
     assert.equal(
         boxjsSettings.some(({ type, val }) => type === "text" && Array.isArray(val)),
         false,

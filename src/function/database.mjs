@@ -6,6 +6,7 @@ export default {
             Weather: { Provider: "CWA" },
             WeatherAlerts: { Provider: "CWA" },
             NextHour: { Provider: "CWA" },
+            RainAlert: { Mode: "Auto" },
             AirQuality: { Provider: "Environment", UseFixture: false, CountryOverride: "" },
             API: { CWA: { Token: "" }, Environment: { Token: "" } },
         },

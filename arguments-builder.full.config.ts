@@ -130,6 +130,22 @@ const nextHourProvider: Arg = {
 
 export const nextHour = [nextHourProvider];
 
+const rainAlertMode: Arg = {
+    key: "RainAlert.Mode",
+    name: "[降雨通知] 通知方式",
+    defaultValue: "Auto",
+    type: "string",
+    options: [
+        { key: "Auto", label: "天氣 App 原生優先，排程補送" },
+        { key: "Weather", label: "只用天氣 App 原生通知" },
+        { key: "Cron", label: "只用排程通知" },
+    ],
+    description:
+        "選擇「未來一小時降雨」通知的來源。天氣 App 的原生通知由未來一小時降水資料驅動，需要城市在關注列表中並開啟「未來一小時降水強度」通知；排程通知由代理程式定時執行腳本，不需要天氣 App 在背景更新。Auto 在天氣 App 剛更新過資料時不補送，避免同一場雨跳出兩則通知。",
+};
+
+export const rainAlert = [rainAlertMode];
+
 const airQualityProvider: Arg = {
     key: "AirQuality.Provider",
     name: "[空氣品質] 資料源",
@@ -214,5 +230,5 @@ export const logLevel: Arg[] = [
 
 export default defineConfig({
     output,
-    args: [...dataSetsFull, ...weatherFull, ...weatherAlerts, ...nextHour, ...airQuality, ...api, ...storage, ...logLevel],
+    args: [...dataSetsFull, ...weatherFull, ...weatherAlerts, ...nextHour, ...rainAlert, ...airQuality, ...api, ...storage, ...logLevel],
 });

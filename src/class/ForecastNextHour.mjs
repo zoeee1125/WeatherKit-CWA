@@ -1,4 +1,5 @@
 import { Console } from "@nsnanocat/util";
+import RainAnchor from "../function/rainAnchor.mjs";
 import QPESUMS from "./QPESUMS.mjs";
 
 /**
@@ -68,11 +69,14 @@ export default class ForecastNextHour {
      *
      * QPESUMS 只提供「未來一小時累積雨量」，沒有逐分鐘曲線，無法得知雨在這一小時的哪一分鐘
      * 開始。這裡取與 QPESUMS 更新頻率相同的十分鐘：前十分鐘無雨、之後才下雨，
-     * 系統才有「起雨」事件可以排定通知。
+     * 系統才有「起雨」事件可以排定通知。這個值只在某場雨第一次被偵測到時使用，
+     * 之後由 `RainAnchor` 沿用同一個起雨時間，不會隨每次刷新往後滑。
      * QPESUMS only publishes the accumulated rainfall for the next hour rather than a
      * minute-by-minute curve, so the exact onset within the hour is unknown. Ten minutes — the
      * cadence at which QPESUMS refreshes — is used as the approximation: the first ten minutes
-     * stay dry and the rain follows, which gives the system an onset to schedule against.
+     * stay dry and the rain follows, which gives the system an onset to schedule against. It is
+     * only used the first time a rain event is detected; `RainAnchor` then keeps that onset
+     * instead of letting it slide forward on every refresh.
      */
     static OnsetLead = 10;
 
@@ -136,8 +140,20 @@ export default class ForecastNextHour {
         // Rain in the past hour means it is already raining; no onset transition is created so the
         // Weather app does not announce a rain event the user is already in.
         const ongoing = (past ?? 0) >= QPESUMS.MinimumRain;
-        const lead = willRain && !ongoing ? Math.min(ForecastNextHour.OnsetLead, ForecastNextHour.Horizon - 1) : 0;
-        const onset = willRain ? forecastStart + lead * 60 : undefined;
+        // 起雨時間只算一次：同一場雨沿用第一次算出的時間，雨停或冷卻到期才重算，
+        // 否則每次刷新都往後推十分鐘，通知永遠等不到那一刻。
+        // The onset is resolved once per rain event and reused until the rain ends or the
+        // cooldown lapses; recomputing "now + ten minutes" on every refresh would keep pushing
+        // the notification further away.
+        const onset = RainAnchor.Onset({
+            latitude: this.latitude,
+            longitude: this.longitude,
+            forecastStart,
+            lead: ForecastNextHour.OnsetLead * 60,
+            rain: willRain,
+            ongoing,
+        });
+        const lead = onset === undefined ? 0 : Math.min(ForecastNextHour.Horizon - 1, Math.max(0, Math.round((onset - forecastStart) / 60)));
         const wetMinutes = ForecastNextHour.Horizon - lead;
         // 整小時累積雨量換算成「有雨分鐘」的降雨強度（毫米／小時）。
         // Convert the hourly total into an intensity over the wet minutes (millimetres per hour).
